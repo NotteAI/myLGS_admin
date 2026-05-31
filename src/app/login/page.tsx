@@ -40,19 +40,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Logo — top-left */}
-      <div className="p-6">
-        <div className="w-28 h-20 bg-gray-400 flex items-center justify-center text-white text-xs">
+    <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+      {/* Logo — pinned top-left, outside the centered flow */}
+      <div style={{ position: "absolute", top: 24, left: 24 }}>
+        <div style={{ width: 112, height: 80, backgroundColor: "#9ca3af", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 12 }}>
           myLGS Logo
         </div>
       </div>
 
-      {/* Login card — centered */}
-      <div className="flex justify-center mt-6">
-        <div className="border border-gray-400 px-10 py-8 w-80">
+      {/* Login modal — centered */}
+      <div style={{ border: "1px solid #9ca3af", padding: "2rem 2.5rem", width: 320, backgroundColor: "#e5e7eb" }}>
           {/* Title */}
-          <h1 className="text-3xl text-center mb-6 tracking-wide">MyLGS</h1>
+          <h1 style={{ fontSize: "1.875rem", textAlign: "center", marginBottom: "1.5rem", letterSpacing: "0.025em" }}>MyLGS</h1>
 
           <form onSubmit={handleSubmit} className="space-y-3">
             {/* Email / username */}
@@ -115,18 +114,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="text-blue-500 text-sm flex items-center gap-1 hover:underline"
-                onClick={() => {/* TODO: password reset flow */}}
+                onClick={() => undefined}
               >
                 Forgot username/password?
                 <ChevronRightIcon />
               </button>
             </div>
           </form>
-        </div>
       </div>
-
-      {/* Hidden submit — allows Enter key to submit */}
-      <button type="submit" form="login-form" className="hidden" aria-hidden="true" />
     </div>
   );
 }
