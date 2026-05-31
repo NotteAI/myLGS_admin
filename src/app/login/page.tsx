@@ -120,6 +120,18 @@ export default function LoginPage() {
                 <ChevronRightIcon />
               </button>
             </div>
+
+            {/* Register link */}
+            <div>
+              <button
+                type="button"
+                className="text-blue-500 text-sm flex items-center gap-1 hover:underline"
+                onClick={() => undefined}
+              >
+                Register Now!
+                <ChevronRightIcon />
+              </button>
+            </div>
           </form>
       </div>
     </div>
