@@ -41,7 +41,8 @@ export default function LoginPage() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-      {/* Logo — pinned top-left, outside the centered flow */}
+
+      {/* Logo — pinned top-left */}
       <div style={{ position: "absolute", top: 24, left: 24 }}>
         <div style={{ width: 112, height: 80, backgroundColor: "#9ca3af", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 12 }}>
           myLGS Logo
@@ -50,89 +51,105 @@ export default function LoginPage() {
 
       {/* Login modal — centered */}
       <div style={{ border: "1px solid #9ca3af", padding: "2rem 2.5rem", width: 320, backgroundColor: "#e5e7eb" }}>
-          {/* Title */}
-          <h1 style={{ fontSize: "1.875rem", textAlign: "center", marginBottom: "1.5rem", letterSpacing: "0.025em" }}>MyLGS</h1>
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            {/* Email / username */}
-            <div className="border border-gray-400 flex items-center px-3 py-2 gap-2">
-              <PersonIcon />
-              <input
-                type="email"
-                placeholder="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-                autoComplete="email"
-                className="flex-1 text-sm outline-none placeholder-gray-400 disabled:opacity-50"
-              />
-            </div>
+        {/* Title */}
+        <h1 style={{ fontSize: "1.875rem", textAlign: "center", marginBottom: "1.5rem", letterSpacing: "0.025em", fontWeight: 600, margin: "0 0 1.5rem 0" }}>
+          MyLGS
+        </h1>
 
-            {/* Password */}
-            <div className="border border-gray-400 flex items-center px-3 py-2 gap-2">
-              <LockIcon />
-              <input
-                type="password"
-                placeholder="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                autoComplete="current-password"
-                className="flex-1 text-sm outline-none placeholder-gray-400 disabled:opacity-50"
-              />
-            </div>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-            {/* Error */}
-            {error && (
-              <p className="text-red-500 text-xs">{error}</p>
-            )}
+          {/* Email / username */}
+          <div style={{ border: "1px solid #9ca3af", display: "flex", alignItems: "center", padding: "6px 10px", gap: 8, backgroundColor: "white" }}>
+            <PersonIcon />
+            <input
+              type="email"
+              placeholder="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              autoComplete="email"
+              style={{ flex: 1, fontSize: 14, outline: "none", border: "none", background: "transparent", opacity: loading ? 0.5 : 1 }}
+            />
+          </div>
 
-            {/* Remember username toggle */}
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={rememberUsername}
-                onClick={() => setRememberUsername((v) => !v)}
-                className={`relative w-10 h-6 rounded-full transition-colors focus:outline-none ${
-                  rememberUsername ? "bg-blue-500" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                    rememberUsername ? "translate-x-4" : "translate-x-0"
-                  }`}
-                />
-              </button>
-              <span className="text-blue-500 text-sm">remember username</span>
-            </div>
+          {/* Password */}
+          <div style={{ border: "1px solid #9ca3af", display: "flex", alignItems: "center", padding: "6px 10px", gap: 8, backgroundColor: "white" }}>
+            <LockIcon />
+            <input
+              type="password"
+              placeholder="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+              autoComplete="current-password"
+              style={{ flex: 1, fontSize: 14, outline: "none", border: "none", background: "transparent", opacity: loading ? 0.5 : 1 }}
+            />
+          </div>
 
-            {/* Forgot link */}
-            <div className="pt-1">
-              <button
-                type="button"
-                className="text-blue-500 text-sm flex items-center gap-1 hover:underline"
-                onClick={() => undefined}
-              >
-                Forgot username/password?
-                <ChevronRightIcon />
-              </button>
-            </div>
+          {/* Error */}
+          {error && (
+            <p style={{ color: "#ef4444", fontSize: 12, margin: 0 }}>{error}</p>
+          )}
 
-            {/* Register link */}
-            <div>
-              <button
-                type="button"
-                className="text-blue-500 text-sm flex items-center gap-1 hover:underline"
-                onClick={() => router.push("/register")}
-              >
-                Register Now!
-                <ChevronRightIcon />
-              </button>
-            </div>
-          </form>
+          {/* Remember username toggle */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={rememberUsername}
+              onClick={() => setRememberUsername((v) => !v)}
+              style={{
+                position: "relative",
+                width: 40,
+                height: 24,
+                borderRadius: 12,
+                border: "none",
+                backgroundColor: rememberUsername ? "#3b82f6" : "#d1d5db",
+                cursor: "pointer",
+                padding: 0,
+                flexShrink: 0,
+                transition: "background-color 0.2s",
+              }}
+            >
+              <span style={{
+                position: "absolute",
+                top: 2,
+                left: rememberUsername ? 18 : 2,
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                backgroundColor: "white",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                transition: "left 0.2s",
+              }} />
+            </button>
+            <span style={{ color: "#3b82f6", fontSize: 14 }}>remember username</span>
+          </div>
+
+          {/* Forgot link */}
+          <button
+            type="button"
+            onClick={() => undefined}
+            style={{ display: "flex", alignItems: "center", gap: 4, color: "#3b82f6", fontSize: 14, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 4 }}
+          >
+            Forgot username/password?
+            <ChevronRightIcon />
+          </button>
+
+          {/* Register link */}
+          <button
+            type="button"
+            onClick={() => router.push("/register")}
+            style={{ display: "flex", alignItems: "center", gap: 4, color: "#3b82f6", fontSize: 14, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
+            Register Now!
+            <ChevronRightIcon />
+          </button>
+
+        </form>
       </div>
     </div>
   );
@@ -140,18 +157,9 @@ export default function LoginPage() {
 
 function PersonIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#9ca3af"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ flexShrink: 0 }}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+      fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ flexShrink: 0 }}>
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
     </svg>
@@ -160,18 +168,9 @@ function PersonIcon() {
 
 function LockIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#9ca3af"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ flexShrink: 0 }}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+      fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ flexShrink: 0 }}>
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
@@ -180,18 +179,9 @@ function LockIcon() {
 
 function ChevronRightIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#3b82f6"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ flexShrink: 0 }}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+      fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ flexShrink: 0 }}>
       <polyline points="9 18 15 12 9 6" />
     </svg>
   );
