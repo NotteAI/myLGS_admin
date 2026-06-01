@@ -81,17 +81,20 @@ export default function RegisterPage() {
     <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ border: "1px solid #9ca3af", padding: "2rem 3rem 2.5rem", backgroundColor: "#e5e7eb", width: 560 }}>
 
-        {/* Header */}
-        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.75rem" }}>
-          <button
-            type="button"
-            onClick={() => router.push("/login")}
-            style={{ position: "absolute", left: 0, display: "flex", alignItems: "center", gap: 2, color: "#374151", fontSize: 14, background: "none", border: "none", cursor: "pointer" }}
-          >
-            <ChevronLeftIcon />
-            Back
-          </button>
-          <h1 style={{ fontSize: "1.875rem", fontWeight: 600, margin: 0 }}>New User</h1>
+        {/* Header — 3-column so Back and title don't overlap */}
+        <div style={{ display: "flex", alignItems: "center", marginBottom: "1.75rem" }}>
+          <div style={{ flex: 1 }}>
+            <button
+              type="button"
+              onClick={() => router.push("/login")}
+              style={{ display: "flex", alignItems: "center", gap: 2, color: "#374151", fontSize: 14, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            >
+              <ChevronLeftIcon />
+              Back
+            </button>
+          </div>
+          <h1 style={{ flex: 0, fontSize: "1.875rem", fontWeight: 600, margin: 0, whiteSpace: "nowrap" }}>New User</h1>
+          <div style={{ flex: 1 }} />
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -247,13 +250,13 @@ function FormRow({
 }
 
 function Tooltip({ text }: { text: string }) {
-  const [visible, setVisible] = useState(false);
   return (
-    <div style={{ position: "relative", display: "inline-flex" }}>
-      <button
-        type="button"
-        onMouseEnter={() => setVisible(true)}
-        onMouseLeave={() => setVisible(false)}
+    <span style={{ position: "relative", display: "inline-flex" }} className="tooltip-anchor">
+      <style>{`
+        .tooltip-anchor .tooltip-bubble { display: none; }
+        .tooltip-anchor:hover .tooltip-bubble { display: block; }
+      `}</style>
+      <span
         style={{
           width: 18,
           height: 18,
@@ -261,19 +264,20 @@ function Tooltip({ text }: { text: string }) {
           border: "1px solid #6b7280",
           backgroundColor: "transparent",
           cursor: "help",
-          display: "flex",
+          display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
           fontSize: 11,
           color: "#6b7280",
           flexShrink: 0,
-          padding: 0,
+          userSelect: "none",
         }}
       >
         ?
-      </button>
-      {visible && (
-        <div style={{
+      </span>
+      <span
+        className="tooltip-bubble"
+        style={{
           position: "absolute",
           left: 24,
           top: "50%",
@@ -288,11 +292,12 @@ function Tooltip({ text }: { text: string }) {
           zIndex: 10,
           boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
           pointerEvents: "none",
-        }}>
-          {text}
-        </div>
-      )}
-    </div>
+          whiteSpace: "normal",
+        }}
+      >
+        {text}
+      </span>
+    </span>
   );
 }
 
