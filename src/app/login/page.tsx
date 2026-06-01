@@ -126,7 +126,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="text-blue-500 text-sm flex items-center gap-1 hover:underline"
-                onClick={() => undefined}
+                onClick={() => router.push("/register")}
               >
                 Register Now!
                 <ChevronRightIcon />

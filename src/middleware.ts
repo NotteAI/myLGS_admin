@@ -31,7 +31,10 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Redirect unauthenticated users to /login (except on the login page itself)
-  if (!user && !request.nextUrl.pathname.startsWith("/login")) {
+  const publicPaths = ["/login", "/register"];
+  const isPublic = publicPaths.some((p) => request.nextUrl.pathname.startsWith(p));
+
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

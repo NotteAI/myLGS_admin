@@ -1,0 +1,315 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+const inputStyle: React.CSSProperties = {
+  border: "1px solid #6b7280",
+  padding: "4px 8px",
+  fontSize: 14,
+  width: 220,
+  backgroundColor: "white",
+  outline: "none",
+};
+
+export default function RegisterPage() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [storeName, setStoreName] = useState("");
+  const [isOwner, setIsOwner] = useState(true);
+  const [password, setPassword] = useState("");
+  const [rePassword, setRePassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== rePassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          full_name: `${firstName} ${lastName}`,
+          store_name: storeName,
+          is_owner: isOwner,
+        },
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      setSuccess(true);
+    }
+  };
+
+  if (success) {
+    return (
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ border: "1px solid #9ca3af", padding: "2.5rem 3rem", backgroundColor: "#e5e7eb", textAlign: "center", maxWidth: 400 }}>
+          <h2 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1rem" }}>Check your email</h2>
+          <p style={{ fontSize: 14, color: "#374151", marginBottom: "1.5rem" }}>
+            We sent a confirmation link to <strong>{email}</strong>. Please verify your email before logging in.
+          </p>
+          <button
+            onClick={() => router.push("/login")}
+            style={{ backgroundColor: "#3b82f6", color: "white", border: "none", padding: "8px 24px", borderRadius: 4, fontSize: 14, cursor: "pointer" }}
+          >
+            Back to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ border: "1px solid #9ca3af", padding: "2rem 3rem 2.5rem", backgroundColor: "#e5e7eb", width: 560 }}>
+
+        {/* Header */}
+        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.75rem" }}>
+          <button
+            type="button"
+            onClick={() => router.push("/login")}
+            style={{ position: "absolute", left: 0, display: "flex", alignItems: "center", gap: 2, color: "#374151", fontSize: 14, background: "none", border: "none", cursor: "pointer" }}
+          >
+            <ChevronLeftIcon />
+            Back
+          </button>
+          <h1 style={{ fontSize: "1.875rem", fontWeight: 600, margin: 0 }}>New User</h1>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+            <FormRow label="First Name" required>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+                disabled={loading}
+                style={inputStyle}
+              />
+            </FormRow>
+
+            <FormRow label="Last Name" required>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+                disabled={loading}
+                style={inputStyle}
+              />
+            </FormRow>
+
+            <FormRow label="Email" required>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+                autoComplete="email"
+                style={inputStyle}
+              />
+            </FormRow>
+
+            <FormRow
+              label="Store Name"
+              required
+              tooltip="The name of your registered store on your FFL 07"
+            >
+              <input
+                type="text"
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                required
+                disabled={loading}
+                style={inputStyle}
+              />
+            </FormRow>
+
+            <FormRow
+              label="Are you the owner?"
+              tooltip="Are you (one of) the owner(s) of the store?"
+            >
+              <div style={{ width: 220, display: "flex", alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={isOwner}
+                  onChange={(e) => setIsOwner(e.target.checked)}
+                  disabled={loading}
+                  style={{ width: 16, height: 16, cursor: "pointer" }}
+                />
+              </div>
+            </FormRow>
+
+            <FormRow label="Password" required>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+                autoComplete="new-password"
+                style={inputStyle}
+              />
+            </FormRow>
+
+            <FormRow label="Re-Enter Password" required>
+              <input
+                type="password"
+                value={rePassword}
+                onChange={(e) => setRePassword(e.target.value)}
+                required
+                disabled={loading}
+                autoComplete="new-password"
+                style={inputStyle}
+              />
+            </FormRow>
+
+          </div>
+
+          {error && (
+            <p style={{ color: "#ef4444", fontSize: 13, marginTop: 12 }}>{error}</p>
+          )}
+
+          {/* Submit */}
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                backgroundColor: "#3b82f6",
+                color: "white",
+                border: "none",
+                padding: "8px 32px",
+                borderRadius: 4,
+                fontSize: 15,
+                fontWeight: 500,
+                cursor: loading ? "not-allowed" : "pointer",
+                opacity: loading ? 0.7 : 1,
+              }}
+            >
+              {loading ? "Submitting..." : "Submit!"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ---- Sub-components ----
+
+function FormRow({
+  label,
+  required,
+  tooltip,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  tooltip?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      {/* Label side */}
+      <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 180, justifyContent: "flex-end" }}>
+        <span style={{ fontSize: 14, color: "#111827" }}>
+          {label}
+          {required && <span style={{ color: "#ef4444", marginLeft: 1 }}>*</span>}
+        </span>
+        {tooltip && <Tooltip text={tooltip} />}
+      </div>
+      {/* Input side */}
+      {children}
+    </div>
+  );
+}
+
+function Tooltip({ text }: { text: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div style={{ position: "relative", display: "inline-flex" }}>
+      <button
+        type="button"
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        style={{
+          width: 18,
+          height: 18,
+          borderRadius: "50%",
+          border: "1px solid #6b7280",
+          backgroundColor: "transparent",
+          cursor: "help",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 11,
+          color: "#6b7280",
+          flexShrink: 0,
+          padding: 0,
+        }}
+      >
+        ?
+      </button>
+      {visible && (
+        <div style={{
+          position: "absolute",
+          left: 24,
+          top: "50%",
+          transform: "translateY(-50%)",
+          backgroundColor: "white",
+          border: "1px solid #d1d5db",
+          padding: "8px 10px",
+          borderRadius: 4,
+          width: 160,
+          fontSize: 12,
+          color: "#374151",
+          zIndex: 10,
+          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+          pointerEvents: "none",
+        }}>
+          {text}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChevronLeftIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
