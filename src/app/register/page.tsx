@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 const baseInputStyle: React.CSSProperties = {
@@ -153,14 +154,13 @@ export default function RegisterPage() {
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: "1.75rem" }}>
           <div style={{ flex: 1 }}>
-            <button
-              type="button"
-              onClick={() => router.push("/login")}
-              style={{ display: "flex", alignItems: "center", gap: 2, color: "#374151", fontSize: 14, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            <Link
+              href="/login"
+              style={{ display: "flex", alignItems: "center", gap: 2, color: "#374151", fontSize: 14, textDecoration: "none" }}
             >
               <ChevronLeftIcon />
               Back
-            </button>
+            </Link>
           </div>
           <h1 style={{ flex: 0, fontSize: "1.875rem", fontWeight: 600, margin: 0, whiteSpace: "nowrap" }}>New User</h1>
           <div style={{ flex: 1 }} />

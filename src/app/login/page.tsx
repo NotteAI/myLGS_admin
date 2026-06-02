@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -140,14 +141,13 @@ export default function LoginPage() {
           </button>
 
           {/* Register link */}
-          <button
-            type="button"
-            onClick={() => router.push("/register")}
-            style={{ display: "flex", alignItems: "center", gap: 4, color: "#3b82f6", fontSize: 14, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          <Link
+            href="/register"
+            style={{ display: "flex", alignItems: "center", gap: 4, color: "#3b82f6", fontSize: 14, textDecoration: "none" }}
           >
             Register Now!
             <ChevronRightIcon />
-          </button>
+          </Link>
 
         </form>
       </div>
