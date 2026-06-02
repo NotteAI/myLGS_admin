@@ -38,16 +38,20 @@ export default function RegisterPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .schema(process.env.NEXT_PUBLIC_SUPABASE_SCHEMA ?? "public")
-      .from("stores")
-      .select("id, name")
-      .order("name")
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("stores")
+          .select("id, name")
+          .order("name");
         setStores(data ?? []);
+      } catch {
+        // Fetch failed — dropdown still usable via "Other"
+      } finally {
         setStoresLoading(false);
-      });
+      }
+    })();
   }, []);
 
   function clearError(field: string) {
@@ -146,7 +150,7 @@ export default function RegisterPage() {
           <div style={{ flex: 1 }} />
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
             {/* First Name */}
