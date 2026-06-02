@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-const inputStyle: React.CSSProperties = {
-  border: "1px solid #6b7280",
+const baseInputStyle: React.CSSProperties = {
   padding: "4px 8px",
   fontSize: 14,
   width: 220,
@@ -13,21 +12,29 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
 };
 
+function inputStyle(hasError: boolean): React.CSSProperties {
+  return { ...baseInputStyle, border: `1px solid ${hasError ? "#ef4444" : "#6b7280"}` };
+}
+
 export default function RegisterPage() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  // Store dropdown state
-  const [stores, setStores] = useState<{ id: number; name: string }[]>([]);
+  const [firstName, setFirstName]   = useState("");
+  const [lastName, setLastName]     = useState("");
+  const [email, setEmail]           = useState("");
+  const [password, setPassword]     = useState("");
+  const [rePassword, setRePassword] = useState("");
+
+  // Store dropdown
+  const [stores, setStores]             = useState<{ id: number; name: string }[]>([]);
   const [storesLoading, setStoresLoading] = useState(true);
-  const [dropdownValue, setDropdownValue] = useState(""); // store name | "other" | ""
+  const [dropdownValue, setDropdownValue] = useState("");   // store name | "other" | ""
   const [customStoreName, setCustomStoreName] = useState("");
 
-  const [password, setPassword] = useState("");
-  const [rePassword, setRePassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  // Validation
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
+  const [submitError, setSubmitError] = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [success, setSuccess]   = useState(false);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -43,19 +50,38 @@ export default function RegisterPage() {
       });
   }, []);
 
+  function clearError(field: string) {
+    setFieldErrors((prev) => ({ ...prev, [field]: false }));
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== rePassword) {
-      setError("Passwords do not match.");
-      return;
-    }
+
     const storeName = dropdownValue === "other" ? customStoreName : dropdownValue;
-    if (!storeName) {
-      setError("Please select or enter a store name.");
+
+    // Per-field presence validation
+    const errors: Record<string, boolean> = {
+      firstName:  !firstName.trim(),
+      lastName:   !lastName.trim(),
+      email:      !email.trim(),
+      storeName:  !storeName.trim(),
+      password:   !password.trim(),
+      rePassword: !rePassword.trim(),
+    };
+
+    if (Object.values(errors).some(Boolean)) {
+      setFieldErrors(errors);
       return;
     }
+
+    // Cross-field check
+    if (password !== rePassword) {
+      setSubmitError("Passwords do not match.");
+      return;
+    }
+
     setLoading(true);
-    setError("");
+    setSubmitError("");
 
     const supabase = createClient();
     const { error } = await supabase.auth.signUp({
@@ -64,21 +90,22 @@ export default function RegisterPage() {
       options: {
         data: {
           first_name: firstName,
-          last_name: lastName,
-          full_name: `${firstName} ${lastName}`,
+          last_name:  lastName,
+          full_name:  `${firstName} ${lastName}`,
           store_name: storeName,
         },
       },
     });
 
     if (error) {
-      setError(error.message);
+      setSubmitError(error.message);
       setLoading(false);
     } else {
       setSuccess(true);
     }
   };
 
+  // ── Success screen ──────────────────────────────────────────────────────
   if (success) {
     return (
       <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -98,11 +125,12 @@ export default function RegisterPage() {
     );
   }
 
+  // ── Registration form ───────────────────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ border: "1px solid #9ca3af", padding: "2rem 3rem 2.5rem", backgroundColor: "#e5e7eb", width: 560 }}>
 
-        {/* Header — 3-column so Back and title don't overlap */}
+        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: "1.75rem" }}>
           <div style={{ flex: 1 }}>
             <button
@@ -121,44 +149,46 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-            <FormRow label="First Name" required>
+            {/* First Name */}
+            <FormRow label="First Name" required hasError={fieldErrors.firstName}>
               <input
                 type="text"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                required
+                onChange={(e) => { setFirstName(e.target.value); clearError("firstName"); }}
                 disabled={loading}
-                style={inputStyle}
+                style={inputStyle(!!fieldErrors.firstName)}
               />
             </FormRow>
 
-            <FormRow label="Last Name" required>
+            {/* Last Name */}
+            <FormRow label="Last Name" required hasError={fieldErrors.lastName}>
               <input
                 type="text"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                required
+                onChange={(e) => { setLastName(e.target.value); clearError("lastName"); }}
                 disabled={loading}
-                style={inputStyle}
+                style={inputStyle(!!fieldErrors.lastName)}
               />
             </FormRow>
 
-            <FormRow label="Email" required>
+            {/* Email */}
+            <FormRow label="Email" required hasError={fieldErrors.email}>
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                onChange={(e) => { setEmail(e.target.value); clearError("email"); }}
                 disabled={loading}
                 autoComplete="email"
-                style={inputStyle}
+                style={inputStyle(!!fieldErrors.email)}
               />
             </FormRow>
 
+            {/* Store Name */}
             <FormRow
               label="Store Name"
               required
               tooltip="The name of your registered store on your FFL 07"
+              hasError={fieldErrors.storeName}
             >
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <select
@@ -166,18 +196,16 @@ export default function RegisterPage() {
                   onChange={(e) => {
                     setDropdownValue(e.target.value);
                     setCustomStoreName("");
+                    clearError("storeName");
                   }}
-                  required
                   disabled={loading || storesLoading}
-                  style={{ ...inputStyle, width: 220, cursor: "pointer" }}
+                  style={{ ...inputStyle(!!fieldErrors.storeName && dropdownValue === ""), width: 220, cursor: "pointer" }}
                 >
                   <option value="">
                     {storesLoading ? "Loading..." : "Select a store"}
                   </option>
                   {stores.map((s) => (
-                    <option key={s.id} value={s.name}>
-                      {s.name}
-                    </option>
+                    <option key={s.id} value={s.name}>{s.name}</option>
                   ))}
                   <option value="other">Other</option>
                 </select>
@@ -187,44 +215,44 @@ export default function RegisterPage() {
                     type="text"
                     placeholder="Enter store name"
                     value={customStoreName}
-                    onChange={(e) => setCustomStoreName(e.target.value)}
-                    required
+                    onChange={(e) => { setCustomStoreName(e.target.value); clearError("storeName"); }}
                     disabled={loading}
                     autoFocus
-                    style={inputStyle}
+                    style={inputStyle(!!fieldErrors.storeName && dropdownValue === "other")}
                   />
                 )}
               </div>
             </FormRow>
 
-            <FormRow label="Password" required>
+            {/* Password */}
+            <FormRow label="Password" required hasError={fieldErrors.password}>
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                onChange={(e) => { setPassword(e.target.value); clearError("password"); }}
                 disabled={loading}
                 autoComplete="new-password"
-                style={inputStyle}
+                style={inputStyle(!!fieldErrors.password)}
               />
             </FormRow>
 
-            <FormRow label="Re-Enter Password" required>
+            {/* Re-Enter Password */}
+            <FormRow label="Re-Enter Password" required hasError={fieldErrors.rePassword}>
               <input
                 type="password"
                 value={rePassword}
-                onChange={(e) => setRePassword(e.target.value)}
-                required
+                onChange={(e) => { setRePassword(e.target.value); clearError("rePassword"); }}
                 disabled={loading}
                 autoComplete="new-password"
-                style={inputStyle}
+                style={inputStyle(!!fieldErrors.rePassword)}
               />
             </FormRow>
 
           </div>
 
-          {error && (
-            <p style={{ color: "#ef4444", fontSize: 13, marginTop: 12 }}>{error}</p>
+          {/* General submit error (e.g. passwords don't match, Supabase error) */}
+          {submitError && (
+            <p style={{ color: "#ef4444", fontSize: 13, marginTop: 12 }}>{submitError}</p>
           )}
 
           {/* Submit */}
@@ -253,31 +281,38 @@ export default function RegisterPage() {
   );
 }
 
-// ---- Sub-components ----
+// ── Sub-components ──────────────────────────────────────────────────────────
 
 function FormRow({
   label,
   required,
   tooltip,
+  hasError,
   children,
 }: {
   label: string;
   required?: boolean;
   tooltip?: string;
+  hasError?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      {/* Label side */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 180, justifyContent: "flex-end" }}>
-        <span style={{ fontSize: 14, color: "#111827" }}>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+      {/* Label side — offset down to align with input */}
+      <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 180, justifyContent: "flex-end", paddingTop: 5 }}>
+        <span style={{ fontSize: 14, color: hasError ? "#ef4444" : "#111827" }}>
           {label}
           {required && <span style={{ color: "#ef4444", marginLeft: 1 }}>*</span>}
         </span>
         {tooltip && <Tooltip text={tooltip} />}
       </div>
-      {/* Input side */}
-      {children}
+      {/* Input + optional error message */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {children}
+        {hasError && (
+          <span style={{ color: "#ef4444", fontSize: 12 }}>Field missing input</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -289,45 +324,10 @@ function Tooltip({ text }: { text: string }) {
         .tooltip-anchor .tooltip-bubble { display: none; }
         .tooltip-anchor:hover .tooltip-bubble { display: block; }
       `}</style>
-      <span
-        style={{
-          width: 18,
-          height: 18,
-          borderRadius: "50%",
-          border: "1px solid #6b7280",
-          backgroundColor: "transparent",
-          cursor: "help",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 11,
-          color: "#6b7280",
-          flexShrink: 0,
-          userSelect: "none",
-        }}
-      >
+      <span style={{ width: 18, height: 18, borderRadius: "50%", border: "1px solid #6b7280", backgroundColor: "transparent", cursor: "help", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#6b7280", flexShrink: 0, userSelect: "none" }}>
         ?
       </span>
-      <span
-        className="tooltip-bubble"
-        style={{
-          position: "absolute",
-          left: 24,
-          top: "50%",
-          transform: "translateY(-50%)",
-          backgroundColor: "white",
-          border: "1px solid #d1d5db",
-          padding: "8px 10px",
-          borderRadius: 4,
-          width: 160,
-          fontSize: 12,
-          color: "#374151",
-          zIndex: 10,
-          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-          pointerEvents: "none",
-          whiteSpace: "normal",
-        }}
-      >
+      <span className="tooltip-bubble" style={{ position: "absolute", left: 24, top: "50%", transform: "translateY(-50%)", backgroundColor: "white", border: "1px solid #d1d5db", padding: "8px 10px", borderRadius: 4, width: 160, fontSize: 12, color: "#374151", zIndex: 10, boxShadow: "0 2px 6px rgba(0,0,0,0.1)", pointerEvents: "none", whiteSpace: "normal" }}>
         {text}
       </span>
     </span>
@@ -336,17 +336,8 @@ function Tooltip({ text }: { text: string }) {
 
 function ChevronLeftIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="15 18 9 12 15 6" />
     </svg>
   );
