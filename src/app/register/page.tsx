@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -23,20 +23,22 @@ export default function RegisterPage() {
   const [password, setPassword]     = useState("");
   const [rePassword, setRePassword] = useState("");
 
-  // Store dropdown
-  const [stores, setStores]             = useState<{ id: number; name: string }[]>([]);
+  // Store typeahead
+  const [stores, setStores]               = useState<{ id: number; name: string }[]>([]);
   const [storesLoading, setStoresLoading] = useState(true);
-  const [dropdownValue, setDropdownValue] = useState("");   // store name | "other" | ""
-  const [customStoreName, setCustomStoreName] = useState("");
+  const [storeInput, setStoreInput]       = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const storeWrapperRef = useRef<HTMLDivElement>(null);
 
   // Validation
   const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
   const [submitError, setSubmitError] = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [success, setSuccess]   = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const router = useRouter();
 
+  // Fetch stores
   useEffect(() => {
     (async () => {
       try {
@@ -47,12 +49,28 @@ export default function RegisterPage() {
           .order("name");
         setStores(data ?? []);
       } catch {
-        // Fetch failed — dropdown still usable via "Other"
+        // Fetch failed — user can still type freely
       } finally {
         setStoresLoading(false);
       }
     })();
   }, []);
+
+  // Close suggestions on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (storeWrapperRef.current && !storeWrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filtered suggestions based on current input
+  const suggestions = storeInput.trim()
+    ? stores.filter((s) => s.name.toLowerCase().includes(storeInput.toLowerCase()))
+    : stores;
 
   function clearError(field: string) {
     setFieldErrors((prev) => ({ ...prev, [field]: false }));
@@ -61,14 +79,13 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const storeName = dropdownValue === "other" ? customStoreName : dropdownValue;
+    const storeName = storeInput.trim();
 
-    // Per-field presence validation
     const errors: Record<string, boolean> = {
       firstName:  !firstName.trim(),
       lastName:   !lastName.trim(),
       email:      !email.trim(),
-      storeName:  !storeName.trim(),
+      storeName:  !storeName,
       password:   !password.trim(),
       rePassword: !rePassword.trim(),
     };
@@ -78,7 +95,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // Cross-field check
     if (password !== rePassword) {
       setSubmitError("Passwords do not match.");
       return;
@@ -187,43 +203,76 @@ export default function RegisterPage() {
               />
             </FormRow>
 
-            {/* Store Name */}
+            {/* Store Name — typeahead */}
             <FormRow
               label="Store Name"
               required
               tooltip="The name of your registered store on your FFL 07"
               hasError={fieldErrors.storeName}
             >
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <select
-                  value={dropdownValue}
+              <div ref={storeWrapperRef} style={{ position: "relative", width: 220 }}>
+                <input
+                  type="text"
+                  value={storeInput}
                   onChange={(e) => {
-                    setDropdownValue(e.target.value);
-                    setCustomStoreName("");
+                    setStoreInput(e.target.value);
+                    setShowSuggestions(true);
                     clearError("storeName");
                   }}
+                  onFocus={() => setShowSuggestions(true)}
                   disabled={loading || storesLoading}
-                  style={{ ...inputStyle(!!fieldErrors.storeName && dropdownValue === ""), width: 220, cursor: "pointer" }}
-                >
-                  <option value="">
-                    {storesLoading ? "Loading..." : "Select a store"}
-                  </option>
-                  {stores.map((s) => (
-                    <option key={s.id} value={s.name}>{s.name}</option>
-                  ))}
-                  <option value="other">Other</option>
-                </select>
+                  placeholder={storesLoading ? "Loading..." : "Search stores…"}
+                  style={{ ...inputStyle(!!fieldErrors.storeName), width: "100%", boxSizing: "border-box" }}
+                />
 
-                {dropdownValue === "other" && (
-                  <input
-                    type="text"
-                    placeholder="Enter store name"
-                    value={customStoreName}
-                    onChange={(e) => { setCustomStoreName(e.target.value); clearError("storeName"); }}
-                    disabled={loading}
-                    autoFocus
-                    style={inputStyle(!!fieldErrors.storeName && dropdownValue === "other")}
-                  />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    width: "100%",
+                    backgroundColor: "white",
+                    border: "1px solid #9ca3af",
+                    borderTop: "none",
+                    zIndex: 20,
+                    maxHeight: 180,
+                    overflowY: "auto",
+                    boxShadow: "0 4px 6px rgba(0,0,0,0.08)",
+                  }}>
+                    {suggestions.map((s) => (
+                      <div
+                        key={s.id}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // keep input focused until selection
+                          setStoreInput(s.name);
+                          setShowSuggestions(false);
+                          clearError("storeName");
+                        }}
+                        style={{ padding: "6px 10px", fontSize: 14, cursor: "pointer", backgroundColor: "white" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f3f4f6")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+                      >
+                        {s.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {showSuggestions && storeInput.trim() && suggestions.length === 0 && (
+                  <div style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    width: "100%",
+                    backgroundColor: "white",
+                    border: "1px solid #9ca3af",
+                    borderTop: "none",
+                    padding: "6px 10px",
+                    fontSize: 13,
+                    color: "#6b7280",
+                  }}>
+                    No matching stores
+                  </div>
                 )}
               </div>
             </FormRow>
@@ -254,12 +303,10 @@ export default function RegisterPage() {
 
           </div>
 
-          {/* General submit error (e.g. passwords don't match, Supabase error) */}
           {submitError && (
             <p style={{ color: "#ef4444", fontSize: 13, marginTop: 12 }}>{submitError}</p>
           )}
 
-          {/* Submit */}
           <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
             <button
               type="submit"
@@ -302,7 +349,6 @@ function FormRow({
 }) {
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-      {/* Label side — offset down to align with input */}
       <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 180, justifyContent: "flex-end", paddingTop: 5 }}>
         <span style={{ fontSize: 14, color: hasError ? "#ef4444" : "#111827" }}>
           {label}
@@ -310,7 +356,6 @@ function FormRow({
         </span>
         {tooltip && <Tooltip text={tooltip} />}
       </div>
-      {/* Input + optional error message */}
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {children}
         {hasError && (
