@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -17,7 +17,12 @@ export default function RegisterPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [storeName, setStoreName] = useState("");
+  // Store dropdown state
+  const [stores, setStores] = useState<{ id: number; name: string }[]>([]);
+  const [storesLoading, setStoresLoading] = useState(true);
+  const [dropdownValue, setDropdownValue] = useState(""); // store name | "other" | ""
+  const [customStoreName, setCustomStoreName] = useState("");
+
   const [password, setPassword] = useState("");
   const [rePassword, setRePassword] = useState("");
   const [error, setError] = useState("");
@@ -25,10 +30,28 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .schema(process.env.NEXT_PUBLIC_SUPABASE_SCHEMA ?? "public")
+      .from("stores")
+      .select("id, name")
+      .order("name")
+      .then(({ data }) => {
+        setStores(data ?? []);
+        setStoresLoading(false);
+      });
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== rePassword) {
       setError("Passwords do not match.");
+      return;
+    }
+    const storeName = dropdownValue === "other" ? customStoreName : dropdownValue;
+    if (!storeName) {
+      setError("Please select or enter a store name.");
       return;
     }
     setLoading(true);
@@ -137,14 +160,41 @@ export default function RegisterPage() {
               required
               tooltip="The name of your registered store on your FFL 07"
             >
-              <input
-                type="text"
-                value={storeName}
-                onChange={(e) => setStoreName(e.target.value)}
-                required
-                disabled={loading}
-                style={inputStyle}
-              />
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <select
+                  value={dropdownValue}
+                  onChange={(e) => {
+                    setDropdownValue(e.target.value);
+                    setCustomStoreName("");
+                  }}
+                  required
+                  disabled={loading || storesLoading}
+                  style={{ ...inputStyle, width: 220, cursor: "pointer" }}
+                >
+                  <option value="">
+                    {storesLoading ? "Loading..." : "Select a store"}
+                  </option>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.name}>
+                      {s.name}
+                    </option>
+                  ))}
+                  <option value="other">Other</option>
+                </select>
+
+                {dropdownValue === "other" && (
+                  <input
+                    type="text"
+                    placeholder="Enter store name"
+                    value={customStoreName}
+                    onChange={(e) => setCustomStoreName(e.target.value)}
+                    required
+                    disabled={loading}
+                    autoFocus
+                    style={inputStyle}
+                  />
+                )}
+              </div>
             </FormRow>
 
             <FormRow label="Password" required>
