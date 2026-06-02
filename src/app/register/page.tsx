@@ -18,7 +18,6 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [storeName, setStoreName] = useState("");
-  const [isOwner, setIsOwner] = useState(true);
   const [password, setPassword] = useState("");
   const [rePassword, setRePassword] = useState("");
   const [error, setError] = useState("");
@@ -45,7 +44,6 @@ export default function RegisterPage() {
           last_name: lastName,
           full_name: `${firstName} ${lastName}`,
           store_name: storeName,
-          is_owner: isOwner,
         },
       },
     });
@@ -147,21 +145,6 @@ export default function RegisterPage() {
                 disabled={loading}
                 style={inputStyle}
               />
-            </FormRow>
-
-            <FormRow
-              label="Are you the owner?"
-              tooltip="Are you (one of) the owner(s) of the store?"
-            >
-              <div style={{ width: 220, display: "flex", alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  checked={isOwner}
-                  onChange={(e) => setIsOwner(e.target.checked)}
-                  disabled={loading}
-                  style={{ width: 16, height: 16, cursor: "pointer" }}
-                />
-              </div>
             </FormRow>
 
             <FormRow label="Password" required>
