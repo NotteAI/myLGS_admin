@@ -229,7 +229,7 @@ export default function RegisterPage() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); clearError("password"); }}
+                onChange={(e) => { setPassword(e.target.value); clearError("password"); setSubmitError(""); }}
                 disabled={loading}
                 autoComplete="new-password"
                 style={inputStyle(!!fieldErrors.password)}
@@ -241,7 +241,7 @@ export default function RegisterPage() {
               <input
                 type="password"
                 value={rePassword}
-                onChange={(e) => { setRePassword(e.target.value); clearError("rePassword"); }}
+                onChange={(e) => { setRePassword(e.target.value); clearError("rePassword"); setSubmitError(""); }}
                 disabled={loading}
                 autoComplete="new-password"
                 style={inputStyle(!!fieldErrors.rePassword)}
