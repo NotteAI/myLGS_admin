@@ -28,6 +28,7 @@ export default function RegisterPage() {
   const [stores, setStores]               = useState<{ id: number; name: string }[]>([]);
   const [storesLoading, setStoresLoading] = useState(true);
   const [storeInput, setStoreInput]       = useState("");
+  const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const storeWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -86,7 +87,7 @@ export default function RegisterPage() {
       firstName:  !firstName.trim(),
       lastName:   !lastName.trim(),
       email:      !email.trim(),
-      storeName:  !storeName,
+      storeName:  !storeName || selectedStoreId === null,
       password:   !password.trim(),
       rePassword: !rePassword.trim(),
     };
@@ -109,11 +110,11 @@ export default function RegisterPage() {
       email,
       password,
       options: {
+        emailRedirectTo: 'https://yourdomain.com/auth/callback',
         data: {
           first_name: firstName,
           last_name:  lastName,
-          full_name:  `${firstName} ${lastName}`,
-          store_name: storeName,
+          store_id:   selectedStoreId,
         },
       },
     });
@@ -216,6 +217,7 @@ export default function RegisterPage() {
                   value={storeInput}
                   onChange={(e) => {
                     setStoreInput(e.target.value);
+                    setSelectedStoreId(null);
                     setShowSuggestions(true);
                     clearError("storeName");
                   }}
@@ -245,6 +247,7 @@ export default function RegisterPage() {
                         onMouseDown={(e) => {
                           e.preventDefault(); // keep input focused until selection
                           setStoreInput(s.name);
+                          setSelectedStoreId(s.id);
                           setShowSuggestions(false);
                           clearError("storeName");
                         }}
