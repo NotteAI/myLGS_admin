@@ -30,10 +30,17 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Redirect unauthenticated users to /login (except on the login page itself)
-  if (!user && !request.nextUrl.pathname.startsWith("/login")) {
+  // Public routes — no auth required
+  const publicPaths = ["/", "/stores", "/search", "/auth", "/login", "/register"];
+  const isPublic = publicPaths.some(
+    (p) => request.nextUrl.pathname === p || request.nextUrl.pathname.startsWith(p + "/")
+  );
+
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    const redirect = request.nextUrl.pathname;
+    url.pathname = "/auth";
+    url.searchParams.set("redirect", redirect);
     return NextResponse.redirect(url);
   }
 
