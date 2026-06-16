@@ -14,9 +14,9 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FOUND. — Local inventory, around the corner",
+  title: "my LGS — Local FFLs, training, and events near you",
   description:
-    "Search inventory across independent brick-and-mortar shops in your neighborhood. Build wishlists. Request special orders.",
+    "Find local FFLs, training, and events near you. Place special orders, get restock notifications, and customize your experience.",
 };
 
 export default function RootLayout({

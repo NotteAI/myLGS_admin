@@ -44,7 +44,7 @@ export function Header() {
             <line x1="252" y1="62" x2="252" y2="185" strokeWidth="1" stroke="#444444" />
             <text x="278" y="97" fontSize="15" fontWeight="300" fontFamily="var(--font-sans,Arial,sans-serif)" fill="#888888">my</text>
             <line x1="278" y1="109" x2="448" y2="109" strokeWidth="1" stroke="#b89030" />
-            <text x="271" y="186" fontSize="90" fontWeight="700" fontFamily="var(--font-sans,Arial,sans-serif)" fill="#ebebeb">LGS</text>
+            <text x="271" y="186" fontSize="90" fontWeight="700" fontFamily="var(--font-sans,Arial,sans-serif)" fill="#1a1a1a">LGS</text>
           </svg>
         </Link>
 

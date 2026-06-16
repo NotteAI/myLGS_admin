@@ -48,12 +48,10 @@ export default function HomePage() {
             [ Local · In-Store · Real Stock ]
           </p>
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight max-w-4xl text-balance">
-            Find what you need at the shops around the corner.
+            What are you looking for?
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
-            Live inventory from {stores.data?.length ?? "—"} independent shops. Search across all
-            of them at once, save your favorites, and request special orders without leaving the
-            neighborhood.
+            See what local FFLs, training, and events are in your area
           </p>
 
           <form
