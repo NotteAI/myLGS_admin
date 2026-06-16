@@ -35,7 +35,7 @@ export default function LoginPage() {
       } else {
         localStorage.removeItem("rememberedUsername");
       }
-      router.push("/");
+      router.push("/home");
       router.refresh();
     }
   };
@@ -129,6 +129,26 @@ export default function LoginPage() {
             </button>
             <span style={{ color: "#3b82f6", fontSize: 14 }}>remember username</span>
           </div>
+
+          {/* Login button */}
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              backgroundColor: "#3b82f6",
+              color: "white",
+              border: "none",
+              borderRadius: 6,
+              padding: "10px",
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
+              marginTop: 4,
+            }}
+          >
+            {loading ? "Logging in…" : "Log in!"}
+          </button>
 
           {/* Forgot link */}
           <button

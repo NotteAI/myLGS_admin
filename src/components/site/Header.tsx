@@ -113,7 +113,7 @@ export function Header() {
             </>
           ) : (
             <Link
-              href={`/auth?redirect=${encodeURIComponent(pathname)}`}
+              href="/register"
               className="inline-flex h-10 items-center bg-ink px-5 text-sm font-semibold text-white hover:bg-brand transition-colors"
             >
               Sign in

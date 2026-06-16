@@ -1,396 +1,212 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
-const baseInputStyle: React.CSSProperties = {
-  padding: "4px 8px",
-  fontSize: 14,
-  width: 220,
-  backgroundColor: "white",
-  outline: "none",
-};
-
-function inputStyle(hasError: boolean): React.CSSProperties {
-  return { ...baseInputStyle, border: `1px solid ${hasError ? "#ef4444" : "#6b7280"}` };
-}
+const Logo = ({ dark }: { dark?: boolean }) => (
+  <svg width={dark ? 120 : 100} viewBox="0 0 680 250" role="img" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="155" cy="122" r="64" strokeWidth="1.5" fill="none" stroke={dark ? "#555555" : "#cccccc"} />
+    <path d="M142,75 L144.8,89 L144.8,99 L146.5,111 L146.5,164 L147.5,164 L147.5,168 L136.5,168 L136.5,164 L137.5,164 L137.5,111 L139.2,99 L139.2,89 Z" fill="#b89030" />
+    <path d="M155,75 L157.8,89 L157.8,99 L159.5,111 L159.5,164 L160.5,164 L160.5,168 L149.5,168 L149.5,164 L150.5,164 L150.5,111 L152.2,99 L152.2,89 Z" fill="#b89030" />
+    <path d="M168,75 L170.8,89 L170.8,99 L172.5,111 L172.5,164 L173.5,164 L173.5,168 L162.5,168 L162.5,164 L163.5,164 L163.5,111 L165.2,99 L165.2,89 Z" fill="#b89030" />
+    <line x1="252" y1="62" x2="252" y2="185" strokeWidth="1" stroke={dark ? "#666666" : "#444444"} />
+    <text x="278" y="97" fontSize="15" fontWeight="300" fontFamily="var(--font-sans,Arial,sans-serif)" fill="#888888">my</text>
+    <line x1="278" y1="109" x2="448" y2="109" strokeWidth="1" stroke="#b89030" />
+    <text x="271" y="186" fontSize="90" fontWeight="700" fontFamily="var(--font-sans,Arial,sans-serif)" fill={dark ? "#ffffff" : "#1a1a1a"}>LGS</text>
+  </svg>
+);
 
 export default function RegisterPage() {
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+
+  // Shared fields
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+
+  // Signup-only fields
   const [firstName, setFirstName]   = useState("");
   const [lastName, setLastName]     = useState("");
-  const [email, setEmail]           = useState("");
-  const [password, setPassword]     = useState("");
   const [rePassword, setRePassword] = useState("");
 
-  // Store typeahead
-  const [stores, setStores]               = useState<{ id: number; name: string }[]>([]);
-  const [storesLoading, setStoresLoading] = useState(true);
-  const [storeInput, setStoreInput]       = useState("");
-  const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const storeWrapperRef = useRef<HTMLDivElement>(null);
-
-  // Validation
-  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
-  const [submitError, setSubmitError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-
+  const rePasswordRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  // Fetch stores
-  useEffect(() => {
-    (async () => {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from("stores")
-          .select("id, name")
-          .order("name");
-        setStores(data ?? []);
-      } catch {
-        // Fetch failed — user can still type freely
-      } finally {
-        setStoresLoading(false);
-      }
-    })();
-  }, []);
-
-  // Close suggestions on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (storeWrapperRef.current && !storeWrapperRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Filtered suggestions based on current input
-  const suggestions = storeInput.trim()
-    ? stores.filter((s) => s.name.toLowerCase().includes(storeInput.toLowerCase()))
-    : stores;
-
-  function clearError(field: string) {
-    setFieldErrors((prev) => ({ ...prev, [field]: false }));
-  }
+  const switchMode = (next: "signin" | "signup") => {
+    setMode(next);
+    setEmail("");
+    setPassword("");
+    setFirstName("");
+    setLastName("");
+    setRePassword("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const storeName = storeInput.trim();
-
-    const errors: Record<string, boolean> = {
-      firstName:  !firstName.trim(),
-      lastName:   !lastName.trim(),
-      email:      !email.trim(),
-      storeName:  !storeName || selectedStoreId === null,
-      password:   !password.trim(),
-      rePassword: !rePassword.trim(),
-    };
-
-    if (Object.values(errors).some(Boolean)) {
-      setFieldErrors(errors);
-      return;
-    }
-
-    if (password !== rePassword) {
-      setSubmitError("Passwords do not match.");
-      return;
-    }
-
     setLoading(true);
-    setSubmitError("");
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: 'https://yourdomain.com/auth/callback',
-        data: {
-          first_name: firstName,
-          last_name:  lastName,
-          store_id:   selectedStoreId,
-        },
-      },
-    });
-
-    if (error) {
-      setSubmitError(error.message);
+    try {
+      const supabase = createClient();
+      if (mode === "signin") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        toast.success("Welcome back");
+        router.push("/home");
+        router.refresh();
+      } else {
+        if (password !== rePassword) {
+          rePasswordRef.current?.setCustomValidity("Passwords do not match.");
+          rePasswordRef.current?.reportValidity();
+          setLoading(false);
+          return;
+        }
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            data: { first_name: firstName, last_name: lastName },
+          },
+        });
+        if (error) throw error;
+        toast.success("Account created — check your email to confirm.");
+        router.push("/register");
+      }
+    } catch (err) {
+      console.error("[register] auth error:", err);
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
       setLoading(false);
-    } else {
-      setSuccess(true);
     }
   };
 
-  // ── Success screen ──────────────────────────────────────────────────────
-  if (success) {
-    return (
-      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ border: "1px solid #9ca3af", padding: "2.5rem 3rem", backgroundColor: "#e5e7eb", textAlign: "center", maxWidth: 400 }}>
-          <h2 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1rem" }}>Check your email</h2>
-          <p style={{ fontSize: 14, color: "#374151", marginBottom: "1.5rem" }}>
-            We sent a confirmation link to <strong>{email}</strong>. Please verify your email before logging in.
-          </p>
-          <button
-            onClick={() => router.push("/login")}
-            style={{ backgroundColor: "#3b82f6", color: "white", border: "none", padding: "8px 24px", borderRadius: 4, fontSize: 14, cursor: "pointer" }}
-          >
-            Back to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const leftText = mode === "signin"
+    ? "Sign in to place special orders, be notified of restocks, and customize your experience."
+    : "Create an account to place special orders, be notified of restocks, and customize your experience.";
 
-  // ── Registration form ───────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ border: "1px solid #9ca3af", padding: "2rem 3rem 2.5rem", backgroundColor: "#e5e7eb", width: 560 }}>
-
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", marginBottom: "1.75rem" }}>
-          <div style={{ flex: 1 }}>
-            <Link
-              href="/login"
-              style={{ display: "flex", alignItems: "center", gap: 2, color: "#374151", fontSize: 14, textDecoration: "none" }}
-            >
-              <ChevronLeftIcon />
-              Back
-            </Link>
-          </div>
-          <h1 style={{ flex: 0, fontSize: "1.875rem", fontWeight: 600, margin: 0, whiteSpace: "nowrap" }}>New User</h1>
-          <div style={{ flex: 1 }} />
+    <main className="min-h-screen grid lg:grid-cols-2 bg-background">
+      {/* Left panel */}
+      <div className="hidden lg:flex flex-col justify-between bg-ink text-white p-12">
+        <Link href="/" aria-label="my LGS home"><Logo dark /></Link>
+        <div>
+          <p className="font-mono text-xs uppercase tracking-widest text-brand mb-4">
+            [ Local · In-Store · Real Stock ]
+          </p>
+          <h2 className="text-4xl font-bold leading-tight max-w-md">{leftText}</h2>
         </div>
+        <p className="font-mono text-xs text-white/40">Edition 2026 · Independent retail</p>
+      </div>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Right panel */}
+      <div className="flex items-center justify-center p-6 lg:p-12">
+        <div className="w-full max-w-sm">
+          <Link href="/" className="lg:hidden block mb-12" aria-label="my LGS home">
+            <Logo />
+          </Link>
 
-            {/* First Name */}
-            <FormRow label="First Name" required hasError={fieldErrors.firstName}>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => { setFirstName(e.target.value); clearError("firstName"); }}
-                disabled={loading}
-                style={inputStyle(!!fieldErrors.firstName)}
-              />
-            </FormRow>
+          <p className="font-mono text-xs uppercase tracking-widest text-ink/50 mb-2">
+            [ {mode === "signin" ? "Returning" : "New Account"} ]
+          </p>
+          <h1 className="text-3xl font-bold mb-8">
+            {mode === "signin" ? "Sign in to your account" : "Create your account"}
+          </h1>
 
-            {/* Last Name */}
-            <FormRow label="Last Name" required hasError={fieldErrors.lastName}>
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => { setLastName(e.target.value); clearError("lastName"); }}
-                disabled={loading}
-                style={inputStyle(!!fieldErrors.lastName)}
-              />
-            </FormRow>
-
-            {/* Email */}
-            <FormRow label="Email" required hasError={fieldErrors.email}>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); clearError("email"); }}
-                disabled={loading}
-                autoComplete="email"
-                style={inputStyle(!!fieldErrors.email)}
-              />
-            </FormRow>
-
-            {/* Store Name — typeahead */}
-            <FormRow
-              label="Store Name"
-              required
-              tooltip="The name of your registered store on your FFL 07"
-              hasError={fieldErrors.storeName}
-            >
-              <div ref={storeWrapperRef} style={{ position: "relative", width: 220 }}>
-                <input
-                  type="text"
-                  value={storeInput}
-                  onChange={(e) => {
-                    setStoreInput(e.target.value);
-                    setSelectedStoreId(null);
-                    setShowSuggestions(true);
-                    clearError("storeName");
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  disabled={loading || storesLoading}
-                  placeholder={storesLoading ? "Loading..." : "Search stores…"}
-                  style={{ ...inputStyle(!!fieldErrors.storeName), width: "100%", boxSizing: "border-box" }}
-                />
-
-                {showSuggestions && suggestions.length > 0 && (
-                  <div style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    width: "100%",
-                    backgroundColor: "white",
-                    border: "1px solid #9ca3af",
-                    borderTop: "none",
-                    zIndex: 20,
-                    maxHeight: 180,
-                    overflowY: "auto",
-                    boxShadow: "0 4px 6px rgba(0,0,0,0.08)",
-                  }}>
-                    {suggestions.map((s) => (
-                      <div
-                        key={s.id}
-                        onMouseDown={(e) => {
-                          e.preventDefault(); // keep input focused until selection
-                          setStoreInput(s.name);
-                          setSelectedStoreId(s.id);
-                          setShowSuggestions(false);
-                          clearError("storeName");
-                        }}
-                        style={{ padding: "6px 10px", fontSize: 14, cursor: "pointer", backgroundColor: "white" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f3f4f6")}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-                      >
-                        {s.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {showSuggestions && storeInput.trim() && suggestions.length === 0 && (
-                  <div style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    width: "100%",
-                    backgroundColor: "white",
-                    border: "1px solid #9ca3af",
-                    borderTop: "none",
-                    padding: "6px 10px",
-                    fontSize: 13,
-                    color: "#6b7280",
-                  }}>
-                    No matching stores
-                  </div>
-                )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === "signup" && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    required
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Jane"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    required
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Doe"
+                  />
+                </div>
               </div>
-            </FormRow>
+            )}
 
-            {/* Password */}
-            <FormRow label="Password" required hasError={fieldErrors.password}>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
                 type="password"
+                required
+                minLength={mode === "signup" ? 8 : undefined}
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); clearError("password"); setSubmitError(""); }}
-                disabled={loading}
-                autoComplete="new-password"
-                style={inputStyle(!!fieldErrors.password)}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
               />
-            </FormRow>
+            </div>
 
-            {/* Re-Enter Password */}
-            <FormRow label="Re-Enter Password" required hasError={fieldErrors.rePassword}>
-              <input
-                type="password"
-                value={rePassword}
-                onChange={(e) => { setRePassword(e.target.value); clearError("rePassword"); setSubmitError(""); }}
-                disabled={loading}
-                autoComplete="new-password"
-                style={inputStyle(!!fieldErrors.rePassword)}
-              />
-            </FormRow>
+            {mode === "signup" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="rePassword">Confirm Password</Label>
+                <Input
+                  id="rePassword"
+                  type="password"
+                  required
+                  ref={rePasswordRef}
+                  value={rePassword}
+                  onChange={(e) => {
+                    rePasswordRef.current?.setCustomValidity("");
+                    setRePassword(e.target.value);
+                  }}
+                  placeholder="Re-enter your password"
+                />
+              </div>
+            )}
 
-          </div>
-
-          {submitError && (
-            <p style={{ color: "#ef4444", fontSize: 13, marginTop: 12 }}>{submitError}</p>
-          )}
-
-          <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
             <button
               type="submit"
               disabled={loading}
-              style={{
-                backgroundColor: "#3b82f6",
-                color: "white",
-                border: "none",
-                padding: "8px 32px",
-                borderRadius: 4,
-                fontSize: 15,
-                fontWeight: 500,
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.7 : 1,
-              }}
+              className="w-full h-12 bg-ink text-white font-semibold text-sm hover:bg-brand transition-colors disabled:opacity-50"
             >
-              {loading ? "Submitting..." : "Submit!"}
+              {loading ? "…" : mode === "signin" ? "Sign In" : "Create Account"}
             </button>
-          </div>
-        </form>
+          </form>
+
+          <p className="mt-6 text-sm text-muted-foreground">
+            {mode === "signin" ? "New here? " : "Already have an account? "}
+            <button
+              onClick={() => switchMode(mode === "signin" ? "signup" : "signin")}
+              className="font-medium text-ink underline hover:text-brand"
+            >
+              {mode === "signin" ? "Create an account" : "Sign in"}
+            </button>
+          </p>
+        </div>
       </div>
-    </div>
-  );
-}
-
-// ── Sub-components ──────────────────────────────────────────────────────────
-
-function FormRow({
-  label,
-  required,
-  tooltip,
-  hasError,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  tooltip?: string;
-  hasError?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 180, justifyContent: "flex-end", paddingTop: 5 }}>
-        <span style={{ fontSize: 14, color: hasError ? "#ef4444" : "#111827" }}>
-          {label}
-          {required && <span style={{ color: "#ef4444", marginLeft: 1 }}>*</span>}
-        </span>
-        {tooltip && <Tooltip text={tooltip} />}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {children}
-        {hasError && (
-          <span style={{ color: "#ef4444", fontSize: 12 }}>Field missing input</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function Tooltip({ text }: { text: string }) {
-  return (
-    <span style={{ position: "relative", display: "inline-flex" }} className="tooltip-anchor">
-      <style>{`
-        .tooltip-anchor .tooltip-bubble { display: none; }
-        .tooltip-anchor:hover .tooltip-bubble { display: block; }
-      `}</style>
-      <span style={{ width: 18, height: 18, borderRadius: "50%", border: "1px solid #6b7280", backgroundColor: "transparent", cursor: "help", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#6b7280", flexShrink: 0, userSelect: "none" }}>
-        ?
-      </span>
-      <span className="tooltip-bubble" style={{ position: "absolute", left: 24, top: "50%", transform: "translateY(-50%)", backgroundColor: "white", border: "1px solid #d1d5db", padding: "8px 10px", borderRadius: 4, width: 160, fontSize: 12, color: "#374151", zIndex: 10, boxShadow: "0 2px 6px rgba(0,0,0,0.1)", pointerEvents: "none", whiteSpace: "normal" }}>
-        {text}
-      </span>
-    </span>
-  );
-}
-
-function ChevronLeftIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15 18 9 12 15 6" />
-    </svg>
+    </main>
   );
 }
