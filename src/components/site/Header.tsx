@@ -35,11 +35,17 @@ export function Header() {
   return (
     <nav className="sticky top-0 z-50 border-b border-ink/10 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-6">
-        <Link
-          href="/"
-          className="font-mono text-xl font-bold italic tracking-tighter text-brand whitespace-nowrap"
-        >
-          FOUND.
+        <Link href="/" className="flex-shrink-0" aria-label="my LGS home">
+          <svg width="90" viewBox="0 0 680 250" role="img" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="155" cy="122" r="64" strokeWidth="1.5" fill="none" stroke="#cccccc" />
+            <path d="M142,75 L144.8,89 L144.8,99 L146.5,111 L146.5,164 L147.5,164 L147.5,168 L136.5,168 L136.5,164 L137.5,164 L137.5,111 L139.2,99 L139.2,89 Z" fill="#b89030" />
+            <path d="M155,75 L157.8,89 L157.8,99 L159.5,111 L159.5,164 L160.5,164 L160.5,168 L149.5,168 L149.5,164 L150.5,164 L150.5,111 L152.2,99 L152.2,89 Z" fill="#b89030" />
+            <path d="M168,75 L170.8,89 L170.8,99 L172.5,111 L172.5,164 L173.5,164 L173.5,168 L162.5,168 L162.5,164 L163.5,164 L163.5,111 L165.2,99 L165.2,89 Z" fill="#b89030" />
+            <line x1="252" y1="62" x2="252" y2="185" strokeWidth="1" stroke="#444444" />
+            <text x="278" y="97" fontSize="15" fontWeight="300" fontFamily="var(--font-sans,Arial,sans-serif)" fill="#888888">my</text>
+            <line x1="278" y1="109" x2="448" y2="109" strokeWidth="1" stroke="#b89030" />
+            <text x="271" y="186" fontSize="90" fontWeight="700" fontFamily="var(--font-sans,Arial,sans-serif)" fill="#ebebeb">LGS</text>
+          </svg>
         </Link>
 
         <form onSubmit={onSubmit} className="relative hidden flex-1 max-w-xl md:block">
