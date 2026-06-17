@@ -35,7 +35,7 @@ export default function LoginPage() {
       } else {
         localStorage.removeItem("rememberedUsername");
       }
-      router.push("/home");
+      router.push("/");
       router.refresh();
     }
   };

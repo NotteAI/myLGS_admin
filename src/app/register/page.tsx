@@ -55,7 +55,7 @@ export default function RegisterPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back");
-        router.push("/home");
+        router.push("/");
         router.refresh();
       } else {
         if (password !== rePassword) {
@@ -74,7 +74,7 @@ export default function RegisterPage() {
         });
         if (error) throw error;
         toast.success("Account created — check your email to confirm.");
-        router.push("/register");
+        router.push("/");
       }
     } catch (err) {
       console.error("[register] auth error:", err);

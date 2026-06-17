@@ -2,23 +2,66 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, Search, Heart } from "lucide-react";
 import { supabase } from "@/lib/supabase/browser";
-import { ItemCard, type InventoryItem } from "@/components/site/ItemCard";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
 import { StoreCard, type StoreSummary } from "@/components/site/StoreCard";
+
+interface RecentInventoryItem {
+  product_id: number;
+  product_name: string;
+  store_id: number;
+  store_name: string;
+  logo_url: string | null;
+  price: number;
+  image_url: string | null;
+  created_at: string;
+  inventory_count: number;
+}
+
+function stockBadge(count: number) {
+  if (count >= 10) return { label: `${count} In Stock`, className: "text-success" };
+  if (count >= 1) return { label: "Low Stock", className: "text-brand" };
+  return { label: "Out of Stock", className: "text-destructive" };
+}
 
 export default function HomePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [q, setQ] = useState("");
+
+  const watchlistMutation = useMutation({
+    mutationFn: async ({ store_id, product_id }: { store_id: number; product_id: number }) => {
+      if (!user) throw new Error("not-auth");
+      const { error } = await supabase.rpc("upsert_watchlist", {
+        p_store_id: store_id,
+        p_product_id: product_id,
+        p_active: true,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => toast.success("Added to watchlist"),
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : "";
+      if (msg === "not-auth") {
+        toast.error("Sign in to save items", {
+          action: { label: "Sign in", onClick: () => router.push("/login") },
+        });
+      } else {
+        toast.error("Couldn't update watchlist");
+      }
+    },
+  });
 
   const stores = useQuery({
     queryKey: ["stores"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stores")
-        .select("id, slug, name, tagline, category, distance_miles")
+        .select("id, name, city, state, logo_url, primary_color_hex, url_extension")
         .order("name");
       if (error) throw error;
       return data as StoreSummary[];
@@ -28,14 +71,9 @@ export default function HomePage() {
   const items = useQuery({
     queryKey: ["featured-items"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inventory_items")
-        .select("*, stores!inner(name, slug)")
-        .in("stock_status", ["in_stock", "low_stock"])
-        .order("created_at", { ascending: false })
-        .limit(8);
+      const { data, error } = await supabase.rpc("get_recent_inventory", {});
       if (error) throw error;
-      return data as (InventoryItem & { stores: { name: string; slug: string } })[];
+      return data as RecentInventoryItem[];
     },
   });
 
@@ -127,9 +165,49 @@ export default function HomePage() {
           </div>
         </div>
         <div className="grid grid-cols-1 gap-px bg-ink/10 sm:grid-cols-2 lg:grid-cols-4 border border-ink/10">
-          {(items.data ?? []).map((i) => (
-            <ItemCard key={i.id} item={i} storeName={i.stores.name} storeSlug={i.stores.slug} />
-          ))}
+          {(items.data ?? []).map((i) => {
+            const stock = stockBadge(i.inventory_count);
+            return (
+              <div key={`${i.product_id}-${i.created_at}`} className="group relative bg-card p-6 flex flex-col">
+                <div className="aspect-square w-full bg-muted outline outline-1 -outline-offset-1 outline-black/5 grid place-items-center mb-4 overflow-hidden">
+                  {i.image_url ? (
+                    <img src={i.image_url} alt={i.product_name} className="size-3/4 object-contain" />
+                  ) : (
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      {i.store_name}
+                    </span>
+                  )}
+                </div>
+                <div className="flex justify-between items-start gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {i.logo_url && (
+                        <img src={i.logo_url} alt={i.store_name} className="size-4 rounded object-cover shrink-0" />
+                      )}
+                      <p className="font-mono text-[11px] uppercase tracking-wider text-brand truncate">
+                        {i.store_name}
+                      </p>
+                    </div>
+                    <h3 className="font-semibold leading-tight truncate">{i.product_name}</h3>
+                  </div>
+                  <p className="font-mono text-sm font-medium whitespace-nowrap shrink-0">
+                    ${i.price.toFixed(2)}
+                  </p>
+                </div>
+                <div className="mt-4 flex items-center justify-between">
+                  <span className={`text-xs font-medium ${stock.className}`}>{stock.label}</span>
+                  <button
+                    onClick={() => watchlistMutation.mutate({ store_id: i.store_id, product_id: i.product_id })}
+                    disabled={watchlistMutation.isPending}
+                    aria-label="Add to watchlist"
+                    className="size-9 border border-ink/15 flex items-center justify-center hover:bg-ink hover:border-ink hover:text-white transition-all"
+                  >
+                    <Heart className="size-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
