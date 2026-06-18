@@ -10,7 +10,7 @@ export default function StoresPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stores")
-        .select("id, slug, name, tagline, category, distance_miles")
+        .select("id, name, city, state, logo_url, primary_color_hex, url_extension")
         .order("name");
       if (error) throw error;
       return data as StoreSummary[];
