@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ArrowRight, Search, Heart } from "lucide-react";
 import { supabase } from "@/lib/supabase/browser";
@@ -31,19 +31,47 @@ function stockBadge(count: number) {
 export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
+  const qc = useQueryClient();
   const [q, setQ] = useState("");
 
-  const watchlistMutation = useMutation({
-    mutationFn: async ({ store_id, product_id }: { store_id: number; product_id: number }) => {
-      if (!user) throw new Error("not-auth");
-      const { error } = await supabase.rpc("upsert_watchlist", {
-        p_store_id: store_id,
-        p_product_id: product_id,
-        p_active: true,
-      });
+  const watchlistQuery = useQuery({
+    queryKey: ["watchlist", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("watchlist")
+        .select("store_id, product_id")
+        .eq("active", true);
       if (error) throw error;
+      return new Set((data ?? []).map((r) => `${r.store_id}-${r.product_id}`));
     },
-    onSuccess: () => toast.success("Added to watchlist"),
+  });
+
+  const watchedSet = watchlistQuery.data ?? new Set<string>();
+
+  const watchlistMutation = useMutation({
+    mutationFn: async ({ store_id, product_id, currently_watched }: { store_id: number; product_id: number; currently_watched: boolean }) => {
+      if (!user) throw new Error("not-auth");
+      if (currently_watched) {
+        const { error } = await supabase
+          .from("watchlist")
+          .update({ active: false })
+          .eq("store_id", store_id)
+          .eq("product_id", product_id)
+          .eq("active", true);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("watchlist")
+          .insert({ store_id, product_id, active: true, user_id: user.id });
+        if (error) throw error;
+      }
+      return !currently_watched;
+    },
+    onSuccess: (nowActive) => {
+      qc.invalidateQueries({ queryKey: ["watchlist", user?.id] });
+      toast.success(nowActive ? "Added to watchlist" : "Removed from watchlist");
+    },
     onError: (e: unknown) => {
       const msg = e instanceof Error ? e.message : "";
       if (msg === "not-auth") {
@@ -167,6 +195,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 gap-px bg-ink/10 sm:grid-cols-2 lg:grid-cols-4 border border-ink/10">
           {(items.data ?? []).map((i) => {
             const stock = stockBadge(i.inventory_count);
+            const watched = watchedSet.has(`${i.store_id}-${i.product_id}`);
             return (
               <div key={`${i.product_id}-${i.created_at}`} className="group relative bg-card p-6 flex flex-col">
                 <div className="aspect-square w-full bg-muted outline outline-1 -outline-offset-1 outline-black/5 grid place-items-center mb-4 overflow-hidden">
@@ -197,12 +226,12 @@ export default function HomePage() {
                 <div className="mt-4 flex items-center justify-between">
                   <span className={`text-xs font-medium ${stock.className}`}>{stock.label}</span>
                   <button
-                    onClick={() => watchlistMutation.mutate({ store_id: i.store_id, product_id: i.product_id })}
+                    onClick={() => watchlistMutation.mutate({ store_id: i.store_id, product_id: i.product_id, currently_watched: watched })}
                     disabled={watchlistMutation.isPending}
-                    aria-label="Add to watchlist"
-                    className="size-9 border border-ink/15 flex items-center justify-center hover:bg-ink hover:border-ink hover:text-white transition-all"
+                    aria-label={watched ? "Remove from watchlist" : "Add to watchlist"}
+                    className="size-9 border flex items-center justify-center transition-all border-ink/15 hover:bg-ink hover:border-ink hover:text-white"
                   >
-                    <Heart className="size-4" />
+                    <Heart className={`size-4 ${watched ? "fill-black stroke-black" : ""}`} />
                   </button>
                 </div>
               </div>
