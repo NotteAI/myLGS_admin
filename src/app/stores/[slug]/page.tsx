@@ -294,7 +294,7 @@ export default function StorePage() {
         <p className="text-sm text-muted-foreground">No items listed yet.</p>
       )}
 
-      <div className="grid grid-cols-1 gap-px bg-ink/10 sm:grid-cols-2 lg:grid-cols-4 border border-ink/10">
+      <div className="grid grid-cols-2 gap-px bg-ink/10 sm:grid-cols-4 lg:grid-cols-8 border border-ink/10">
         {(inventoryQuery.data ?? []).map((i) => (
           <ItemCard
             key={i.id}
