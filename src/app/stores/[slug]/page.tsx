@@ -18,10 +18,12 @@ interface StoreHeader {
   name: string;
   tagline: string | null;
   description: string | null;
+  store_description: string | null;
   address: string | null;
   hours: string | null;
   phone: string | null;
   website: string | null;
+  store_website: string | null;
   logo_url: string | null;
   cover_image: string | null;
   category: string | null;
@@ -30,6 +32,10 @@ interface StoreHeader {
   city: string | null;
   state: string | null;
   primary_color_hex: string | null;
+  training_name: string | null;
+  training_extension: string | null;
+  range_name: string | null;
+  range_extension: string | null;
 }
 
 /** Minimal row from my_lgs_dev.stores */
@@ -155,14 +161,20 @@ export default function StorePage() {
         primary_color_hex: store.primary_color_hex,
         tagline: null,
         description: null,
+        store_description: null,
         address: null,
         hours: null,
         phone: null,
         website: null,
+        store_website: null,
         cover_image: null,
         category: null,
         distance_miles: null,
         is_open: null,
+        training_name: null,
+        training_extension: null,
+        range_name: null,
+        range_extension: null,
       }
     : null);
 
@@ -191,11 +203,16 @@ export default function StorePage() {
     );
   }
 
-  if (!store) {
+  if (storeQuery.isError || !store) {
     return (
       <main className="mx-auto max-w-2xl px-6 py-24 text-center">
         <p className="font-mono text-xs uppercase tracking-widest text-brand mb-3">[ 404 ]</p>
         <h1 className="text-3xl font-bold">Shop not found</h1>
+        {storeQuery.isError && (
+          <p className="mt-4 font-mono text-xs text-destructive">
+            {(storeQuery.error as Error).message}
+          </p>
+        )}
         <Link href="/stores" className="mt-6 inline-block font-mono text-sm underline">
           Back to all shops
         </Link>
@@ -255,11 +272,39 @@ export default function StorePage() {
                 {[header.city, header.state].filter(Boolean).join(", ")}
               </p>
             )}
+            {(header?.store_website || header?.website) && (
+              <a
+                href={(header.store_website ?? header.website)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 block font-mono text-xs text-brand hover:underline truncate max-w-xs"
+              >
+                {header.store_website ?? header.website}
+              </a>
+            )}
+            {(header?.store_description || header?.description) && (
+              <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
+                {header.store_description ?? header.description}
+              </p>
+            )}
+            {header?.training_name && header?.training_extension && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                This store also offers training:{" "}
+                <Link href={`/training/${header.training_extension}`} className="text-brand hover:underline">
+                  {header.training_name}
+                </Link>
+              </p>
+            )}
+            {header?.range_name && header?.range_extension && (
+              <p className="mt-1 text-sm text-muted-foreground">
+                This store also operates a range:{" "}
+                <Link href={`/ranges/${header.range_extension}`} className="text-brand hover:underline">
+                  {header.range_name}
+                </Link>
+              </p>
+            )}
             {header?.tagline && (
               <p className="mt-3 text-lg text-muted-foreground max-w-2xl">{header.tagline}</p>
-            )}
-            {header?.description && (
-              <p className="mt-2 text-sm text-muted-foreground max-w-2xl">{header.description}</p>
             )}
             <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-xs font-mono text-ink/60">
               {header?.address && (
