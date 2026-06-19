@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, Check } from "lucide-react";
+import { Heart } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/browser";
 import { useAuth } from "@/lib/auth-context";
 import { formatPrice, stockLabel, stockTone } from "@/lib/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 export interface InventoryItem {
   id: string;
@@ -26,57 +27,66 @@ interface Props {
   item: InventoryItem;
   storeName?: string;
   storeSlug?: string;
+  storeLogo?: string | null;
+  /** Numeric store_id + product_id from the watchlist-compatible data model. When absent, the watchlist button is hidden. */
+  storeId?: number;
+  productId?: number;
 }
 
-export function ItemCard({ item, storeName, storeSlug }: Props) {
+export function ItemCard({ item, storeName, storeSlug, storeLogo, storeId, productId }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const router = useRouter();
   const tone = stockTone(item.stock_status);
+  const canWatch = storeId != null && productId != null;
 
-  const wishlistQuery = useQuery({
-    queryKey: ["wishlist-id", user?.id, item.id],
-    enabled: !!user,
+  const watchQuery = useQuery({
+    queryKey: ["watchlist-item", user?.id, storeId, productId],
+    enabled: !!user && canWatch,
     queryFn: async () => {
       const { data } = await supabase
-        .from("wishlist_items")
-        .select("id")
-        .eq("user_id", user!.id)
-        .eq("item_id", item.id)
+        .from("watchlist")
+        .select("active")
+        .eq("store_id", storeId!)
+        .eq("product_id", productId!)
+        .eq("active", true)
         .maybeSingle();
-      return data?.id ?? null;
+      return !!data;
     },
   });
 
-  const inWishlist = !!wishlistQuery.data;
+  const isWatched = watchQuery.data ?? false;
 
   const toggle = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("not-auth");
-      if (inWishlist) {
+      if (isWatched) {
         const { error } = await supabase
-          .from("wishlist_items")
-          .delete()
-          .eq("id", wishlistQuery.data!);
+          .from("watchlist")
+          .update({ active: false })
+          .eq("store_id", storeId!)
+          .eq("product_id", productId!)
+          .eq("active", true);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("wishlist_items")
-          .insert({ user_id: user.id, item_id: item.id });
+          .from("watchlist")
+          .insert({ store_id: storeId!, product_id: productId!, active: true, user_id: user.id });
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["wishlist-id", user?.id, item.id] });
-      qc.invalidateQueries({ queryKey: ["wishlist", user?.id] });
-      toast.success(inWishlist ? "Removed from wishlist" : "Added to wishlist");
+      qc.invalidateQueries({ queryKey: ["watchlist-item", user?.id, storeId, productId] });
+      qc.invalidateQueries({ queryKey: ["watchlist", user?.id] });
+      toast.success(isWatched ? "Removed from watchlist" : "Added to watchlist");
     },
     onError: (e: Error) => {
       if (e.message === "not-auth") {
         toast.error("Sign in to save items", {
-          action: { label: "Sign in", onClick: () => (window.location.href = "/auth") },
+          action: { label: "Sign in", onClick: () => router.push("/auth") },
         });
       } else {
-        toast.error("Couldn't update wishlist");
+        toast.error("Couldn't update watchlist");
       }
     },
   });
@@ -98,13 +108,23 @@ export function ItemCard({ item, storeName, storeSlug }: Props) {
             {item.category ?? "Goods"}
           </p>
           <h3 className="mt-1 font-semibold leading-tight truncate">{item.title}</h3>
-          {storeName && storeSlug && (
-            <Link
-              href={`/stores/${storeSlug}`}
-              className="mt-1 inline-block font-mono text-[11px] text-brand hover:underline"
-            >
-              {storeName}
-            </Link>
+          {storeName && (
+            <div className="mt-1 flex items-center gap-1.5">
+              {storeLogo && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={storeLogo} alt={storeName} className="size-4 rounded object-cover shrink-0" />
+              )}
+              {storeSlug ? (
+                <Link
+                  href={`/stores/${storeSlug}`}
+                  className="font-mono text-[11px] text-brand hover:underline truncate"
+                >
+                  {storeName}
+                </Link>
+              ) : (
+                <span className="font-mono text-[11px] text-brand truncate">{storeName}</span>
+              )}
+            </div>
           )}
         </div>
         <p className="font-mono text-sm font-medium whitespace-nowrap">
@@ -122,19 +142,16 @@ export function ItemCard({ item, storeName, storeSlug }: Props) {
         >
           {stockLabel(item.stock_status, item.stock_count)}
         </span>
-        <button
-          onClick={() => toggle.mutate()}
-          disabled={toggle.isPending}
-          aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
-          className={cn(
-            "size-9 border flex items-center justify-center transition-all",
-            inWishlist
-              ? "bg-brand border-brand text-white"
-              : "border-ink/15 hover:bg-ink hover:border-ink hover:text-white",
-          )}
-        >
-          {inWishlist ? <Check className="size-4" /> : <Heart className="size-4" />}
-        </button>
+        {canWatch && (
+          <button
+            onClick={() => toggle.mutate()}
+            disabled={toggle.isPending}
+            aria-label={isWatched ? "Remove from watchlist" : "Add to watchlist"}
+            className="size-9 border flex items-center justify-center transition-all border-ink/15 hover:bg-ink hover:border-ink hover:text-white"
+          >
+            <Heart className={`size-4 ${isWatched ? "fill-black stroke-black" : ""}`} />
+          </button>
+        )}
       </div>
     </div>
   );

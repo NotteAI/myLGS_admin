@@ -5,22 +5,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/browser";
 import { useAuth } from "@/lib/auth-context";
-import { formatPrice, stockLabel } from "@/lib/format";
+import { stockLabel } from "@/lib/format";
 import { toast } from "sonner";
 
 interface Row {
-  id: string;
-  item_id: string;
-  inventory_items: {
-    id: string;
-    title: string;
-    category: string | null;
-    price_cents: number;
-    price_unit: string | null;
-    stock_status: string;
-    stock_count: number;
-    stores: { name: string; slug: string };
-  };
+  store_id: number;
+  product_id: number;
+  product_name: string;
+  store_name: string;
+  price: number;
+  image_url: string | null;
+  inventory_count: number;
 }
 
 export default function WishlistPage() {
@@ -28,28 +23,41 @@ export default function WishlistPage() {
   const qc = useQueryClient();
 
   const wishlist = useQuery({
-    queryKey: ["wishlist", user?.id],
+    queryKey: ["watchlist-page", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wishlist_items")
-        .select(
-          "id, item_id, inventory_items!inner(id, title, category, price_cents, price_unit, stock_status, stock_count, stores!inner(name, slug))",
-        )
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as Row[];
+      const { data: watchRows, error: watchError } = await supabase
+        .from("watchlist")
+        .select("store_id, product_id")
+        .eq("active", true);
+      if (watchError) throw watchError;
+      if (!watchRows || watchRows.length === 0) return [];
+
+      const watchedSet = new Set(watchRows.map((r) => `${r.store_id}-${r.product_id}`));
+
+      const { data: recent, error: recentError } = await supabase.rpc("get_recent_inventory", {});
+      if (recentError) throw recentError;
+
+      return (recent ?? [])
+        .filter((i: { store_id: number; product_id: number }) =>
+          watchedSet.has(`${i.store_id}-${i.product_id}`),
+        ) as Row[];
     },
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("wishlist_items").delete().eq("id", id);
+    mutationFn: async ({ store_id, product_id }: { store_id: number; product_id: number }) => {
+      const { error } = await supabase
+        .from("watchlist")
+        .update({ active: false })
+        .eq("store_id", store_id)
+        .eq("product_id", product_id)
+        .eq("active", true);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["wishlist", user?.id] });
-      toast.success("Removed");
+      qc.invalidateQueries({ queryKey: ["watchlist-page", user?.id] });
+      toast.success("Removed from watchlist");
     },
   });
 
@@ -93,40 +101,40 @@ export default function WishlistPage() {
       )}
 
       <div className="border border-ink/10 divide-y divide-ink/10 bg-card">
-        {(wishlist.data ?? []).map((row) => {
-          const item = row.inventory_items;
-          return (
-            <div key={row.id} className="p-5 flex items-center gap-5 group hover:bg-muted/40">
+        {(Array.isArray(wishlist.data) ? wishlist.data : []).map((row) => (
+          <div
+            key={`${row.store_id}-${row.product_id}`}
+            className="p-5 flex items-center gap-5 group hover:bg-muted/40"
+          >
+            {row.image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={row.image_url}
+                alt={row.product_name}
+                className="size-16 object-cover flex-shrink-0"
+              />
+            ) : (
               <div className="size-16 bg-muted flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="font-mono text-[10px] uppercase tracking-wider text-ink/40">
-                  {item.category}
-                </p>
-                <h3 className="font-semibold truncate">{item.title}</h3>
-                <p className="text-xs text-muted-foreground font-mono mt-1">
-                  At{" "}
-                  <Link
-                    href={`/stores/${item.stores.slug}`}
-                    className="text-brand hover:underline"
-                  >
-                    {item.stores.name}
-                  </Link>{" "}
-                  · {stockLabel(item.stock_status, item.stock_count)}
-                </p>
-              </div>
-              <p className="font-mono text-sm font-medium">
-                {formatPrice(item.price_cents, item.price_unit)}
+            )}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold truncate">{row.product_name}</h3>
+              <p className="text-xs text-muted-foreground font-mono mt-1">
+                At <span className="text-brand">{row.store_name}</span>{" "}
+                · {stockLabel(row.inventory_count > 0 ? "in_stock" : "out_of_stock", row.inventory_count)}
               </p>
-              <button
-                onClick={() => remove.mutate(row.id)}
-                aria-label="Remove"
-                className="size-9 border border-ink/10 flex items-center justify-center hover:bg-destructive hover:text-white hover:border-destructive transition-colors"
-              >
-                <Trash2 className="size-4" />
-              </button>
             </div>
-          );
-        })}
+            <p className="font-mono text-sm font-medium">
+              ${row.price.toFixed(2)}
+            </p>
+            <button
+              onClick={() => remove.mutate({ store_id: row.store_id, product_id: row.product_id })}
+              aria-label="Remove"
+              className="size-9 border border-ink/10 flex items-center justify-center hover:bg-destructive hover:text-white hover:border-destructive transition-colors"
+            >
+              <Trash2 className="size-4" />
+            </button>
+          </div>
+        ))}
       </div>
     </main>
   );
