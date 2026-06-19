@@ -3,7 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Clock, Phone, Globe } from "lucide-react";
 import { supabase } from "@/lib/supabase/browser";
 import { ItemCard, type InventoryItem } from "@/components/site/ItemCard";
 import { SpecialOrderDialog } from "@/components/site/SpecialOrderDialog";
@@ -12,29 +11,24 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const SUPABASE_SCHEMA = process.env.NEXT_PUBLIC_SUPABASE_SCHEMA ?? "public";
 
-/** Shape returned by my_lgs_dev.get_store_header(store_id) */
+/** Shape returned by my_lgs_dev.get_store_header(p_store_id) */
 interface StoreHeader {
   store_id: number;
-  name: string;
-  tagline: string | null;
-  description: string | null;
-  store_description: string | null;
-  address: string | null;
-  hours: string | null;
-  phone: string | null;
-  website: string | null;
+  store_name: string;
+  store_city: string | null;
+  store_state: string | null;
+  store_logo_url: string | null;
   store_website: string | null;
-  logo_url: string | null;
-  cover_image: string | null;
-  category: string | null;
-  distance_miles: number | null;
-  is_open: boolean | null;
-  city: string | null;
-  state: string | null;
-  primary_color_hex: string | null;
+  store_description: string | null;
+  org_id: number | null;
+  org_name: string | null;
+  training_id: number | null;
   training_name: string | null;
+  training_url: string | null;
   training_extension: string | null;
+  range_id: number | null;
   range_name: string | null;
+  range_url: string | null;
   range_extension: string | null;
 }
 
@@ -144,7 +138,7 @@ export default function StorePage() {
     retry: false,
     queryFn: async () => {
       const raw = await rpcPost<StoreHeader | StoreHeader[]>("get_store_header", {
-        store_id: storeId,
+        p_store_id: storeId,
       });
       return (Array.isArray(raw) ? (raw[0] ?? null) : raw) as StoreHeader | null;
     },
@@ -154,26 +148,21 @@ export default function StorePage() {
   const header: Partial<StoreHeader> | null = headerQuery.data ?? (store
     ? {
         store_id: store.id,
-        name: store.name,
-        city: store.city,
-        state: store.state,
-        logo_url: store.logo_url,
-        primary_color_hex: store.primary_color_hex,
-        tagline: null,
-        description: null,
-        store_description: null,
-        address: null,
-        hours: null,
-        phone: null,
-        website: null,
+        store_name: store.name,
+        store_city: store.city,
+        store_state: store.state,
+        store_logo_url: store.logo_url,
         store_website: null,
-        cover_image: null,
-        category: null,
-        distance_miles: null,
-        is_open: null,
+        store_description: null,
+        org_id: null,
+        org_name: null,
+        training_id: null,
         training_name: null,
+        training_url: null,
         training_extension: null,
+        range_id: null,
         range_name: null,
+        range_url: null,
         range_extension: null,
       }
     : null);
@@ -220,23 +209,16 @@ export default function StorePage() {
     );
   }
 
-  const storeName = header?.name ?? store.name;
+  const storeName = header?.store_name ?? store.name;
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      {/* Cover image */}
-      {header?.cover_image && (
-        <div className="mb-8 w-full h-48 overflow-hidden border border-ink/10">
-          <img src={header.cover_image} alt={storeName} className="w-full h-full object-cover" />
-        </div>
-      )}
-
       {/* Store header */}
       <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div className="flex gap-4 items-start">
-          {header?.logo_url ? (
+          {header?.store_logo_url ? (
             <img
-              src={header.logo_url}
+              src={header.store_logo_url}
               alt={storeName}
               className="size-16 rounded object-cover border border-ink/10 shrink-0"
             />
@@ -249,42 +231,25 @@ export default function StorePage() {
             </div>
           )}
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              {header?.is_open != null && (
-                <span
-                  className={`rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-bold text-white uppercase ${
-                    header.is_open ? "bg-brand" : "bg-ink/40"
-                  }`}
-                >
-                  {header.is_open ? "Open Now" : "Closed"}
-                </span>
-              )}
-              {header?.distance_miles != null && (
-                <span className="font-mono text-xs text-ink/50">{header.distance_miles} mi away</span>
-              )}
-              {header?.category && (
-                <span className="font-mono text-xs text-ink/50">· {header.category}</span>
-              )}
-            </div>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{storeName}</h1>
-            {(header?.city || header?.state) && (
+            {(header?.store_city || header?.store_state) && (
               <p className="mt-1 font-mono text-xs text-ink/50 uppercase tracking-wider">
-                {[header.city, header.state].filter(Boolean).join(", ")}
+                {[header.store_city, header.store_state].filter(Boolean).join(", ")}
               </p>
             )}
-            {(header?.store_website || header?.website) && (
+            {header?.store_website && (
               <a
-                href={(header.store_website ?? header.website)!}
+                href={header.store_website}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-1 block font-mono text-xs text-brand hover:underline truncate max-w-xs"
               >
-                {header.store_website ?? header.website}
+                {header.store_website}
               </a>
             )}
-            {(header?.store_description || header?.description) && (
+            {header?.store_description && (
               <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-                {header.store_description ?? header.description}
+                {header.store_description}
               </p>
             )}
             {header?.training_name && header?.training_extension && (
@@ -303,36 +268,6 @@ export default function StorePage() {
                 </Link>
               </p>
             )}
-            {header?.tagline && (
-              <p className="mt-3 text-lg text-muted-foreground max-w-2xl">{header.tagline}</p>
-            )}
-            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-xs font-mono text-ink/60">
-              {header?.address && (
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="size-3.5" /> {header.address}
-                </span>
-              )}
-              {header?.hours && (
-                <span className="inline-flex items-center gap-1.5">
-                  <Clock className="size-3.5" /> {header.hours}
-                </span>
-              )}
-              {header?.phone && (
-                <span className="inline-flex items-center gap-1.5">
-                  <Phone className="size-3.5" /> {header.phone}
-                </span>
-              )}
-              {header?.website && (
-                <a
-                  href={header.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 hover:text-brand"
-                >
-                  <Globe className="size-3.5" /> {header.website}
-                </a>
-              )}
-            </div>
           </div>
         </div>
         <div className="flex gap-3 flex-shrink-0">
