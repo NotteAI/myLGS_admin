@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/browser";
 import { ItemCard, type InventoryItem } from "@/components/site/ItemCard";
 import { SpecialOrderDialog } from "@/components/site/SpecialOrderDialog";
+import { StoreFilterModal, EMPTY_FILTERS, countActiveFilters, type AppliedFilters } from "@/components/site/StoreFilterModal";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -67,6 +69,9 @@ interface RpcInventoryResponse {
 interface MappedItem extends InventoryItem {
   store_id_num: number;
   product_id: number;
+  manufacturer: string | null;
+  model: string | null;
+  raw_price: number;
 }
 
 function stockStatus(count: number): string {
@@ -89,6 +94,9 @@ function mapItem(r: RpcItem): MappedItem {
     image_url: r.image_url,
     store_id_num: r.store_id,
     product_id: r.product_id,
+    manufacturer: r.manufacturer,
+    model: r.model,
+    raw_price: r.price,
   };
 }
 
@@ -113,6 +121,7 @@ async function rpcPost<T>(fn: string, body: Record<string, unknown>): Promise<T>
 
 export default function StorePage() {
   const { slug } = useParams<{ slug: string }>();
+  const [filters, setFilters] = useState<AppliedFilters>(EMPTY_FILTERS);
 
   // Step 1: resolve url_extension → store row (numeric id + basic fields)
   const storeQuery = useQuery({
@@ -167,20 +176,50 @@ export default function StorePage() {
       }
     : null);
 
-  // Step 3: call get_inventory_filtered(p_store_id)
+  // Step 3: call get_inventory_filtered(p_store_id) — reactive to applied filters
   const inventoryQuery = useQuery({
-    queryKey: ["store-inventory", storeId],
+    queryKey: ["store-inventory", storeId, filters],
     enabled: storeId != null,
     queryFn: async () => {
+      // p_filters has a server-side SQL bug for non-empty arrays;
+      // attribute and price filtering is applied client-side below.
       const raw = await rpcPost<RpcInventoryResponse>("get_inventory_filtered", {
         p_store_id: storeId,
         p_page_num: 1,
-        p_page_size: 100,
-        p_in_stock_only: false,
-        p_search: null,
+        p_page_size: 500,
+        p_in_stock_only: filters.inStockOnly,
+        p_search: filters.search || null,
         p_filters: [],
       });
-      return raw.data.map(mapItem);
+      let items = raw.data.map(mapItem);
+
+      // Client-side attribute filtering (Manufacturer → manufacturer, Model → model)
+      const ATTR_FIELD: Record<string, keyof MappedItem> = {
+        Manufacturer: "manufacturer",
+        Model: "model",
+      };
+      for (const [type, values] of Object.entries(filters.attributes)) {
+        if (!values.length) continue;
+        const field = ATTR_FIELD[type];
+        if (field) {
+          items = items.filter((i) => {
+            const v = i[field] as string | null;
+            return v !== null && values.some((sel) => v.toLowerCase() === sel.toLowerCase());
+          });
+        }
+      }
+
+      // Client-side price filtering
+      if (filters.minPrice) {
+        const min = parseFloat(filters.minPrice);
+        items = items.filter((i) => i.raw_price >= min);
+      }
+      if (filters.maxPrice) {
+        const max = parseFloat(filters.maxPrice);
+        items = items.filter((i) => i.raw_price <= max);
+      }
+
+      return items;
     },
   });
 
@@ -280,6 +319,13 @@ export default function StorePage() {
         <h2 className="font-mono text-sm font-bold uppercase tracking-widest">
           In-Store Inventory ({inventoryQuery.data?.length ?? "—"})
         </h2>
+        {storeId != null && (
+          <StoreFilterModal
+            storeId={storeId}
+            onApply={setFilters}
+            activeFilterCount={countActiveFilters(filters)}
+          />
+        )}
       </div>
 
       {inventoryQuery.isLoading && (
