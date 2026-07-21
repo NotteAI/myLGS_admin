@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/browser";
 import { StoreCard, type StoreSummary } from "@/components/site/StoreCard";
+import { DirectoryFilterModal } from "@/components/site/DirectoryFilterModal";
 
 export default function StoresPage() {
   const stores = useQuery({
@@ -19,14 +20,17 @@ export default function StoresPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-16">
-      <div className="mb-10 border-b border-ink pb-6">
-        <p className="font-mono text-xs uppercase tracking-widest text-brand mb-2">
-          [ The Directory ]
-        </p>
-        <h1 className="text-4xl font-bold tracking-tight">All Shops</h1>
-        <p className="mt-2 text-muted-foreground max-w-xl">
-          Every brick-and-mortar in the network. Tap one to see what&apos;s on its shelves right now.
-        </p>
+      <div className="mb-10 border-b border-ink pb-6 flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-xs uppercase tracking-widest text-brand mb-2">
+            [ The Directory ]
+          </p>
+          <h1 className="text-4xl font-bold tracking-tight">All Shops</h1>
+          <p className="mt-2 text-muted-foreground max-w-xl">
+            Every brick-and-mortar in the network. Tap one to see what&apos;s on its shelves right now.
+          </p>
+        </div>
+        <DirectoryFilterModal />
       </div>
 
       {stores.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
