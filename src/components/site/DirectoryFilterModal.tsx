@@ -19,9 +19,6 @@ interface StoreAttributeRow {
 
 type GroupedOptions = Record<string, string[]>;
 
-// store_attributes has no direct anon SELECT grant; get_filter_options is the
-// RPC that exposes it, and p_store_id: null returns attributes across all stores.
-
 export function DirectoryFilterModal() {
   const [open, setOpen] = useState(false);
   const [grouped, setGrouped] = useState<GroupedOptions>({});
@@ -32,7 +29,8 @@ export function DirectoryFilterModal() {
     if (!open) return;
     setLoadingOptions(true);
     supabase
-      .rpc("get_filter_options", { p_store_id: null })
+      .from("store_attributes")
+      .select("attribute_type, attribute_value")
       .then(({ data, error }: { data: StoreAttributeRow[] | null; error: unknown }) => {
         if (error || !data) {
           setGrouped({});
