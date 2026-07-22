@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { AttributeSection } from "@/components/site/StoreFilterModal";
 import { supabase } from "@/lib/supabase/browser";
 
@@ -24,6 +26,7 @@ export function DirectoryFilterModal() {
   const [grouped, setGrouped] = useState<GroupedOptions>({});
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [selected, setSelected] = useState<Record<string, string[]>>({});
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -70,13 +73,27 @@ export function DirectoryFilterModal() {
           </DialogTitle>
         </DialogHeader>
 
-        {loadingOptions ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Loading options…</p>
-        ) : attrTypes.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">No attributes found.</p>
-        ) : (
-          <div className="space-y-4 py-2">
-            {attrTypes.map((type) => (
+        <div className="space-y-4 py-2">
+          {/* Keyword */}
+          <div className="space-y-1.5">
+            <Label className="font-mono text-xs uppercase tracking-widest">Keyword</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+              <Input
+                className="pl-9 focus-visible:ring-brand"
+                placeholder="Title, description…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {loadingOptions ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Loading options…</p>
+          ) : attrTypes.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No attributes found.</p>
+          ) : (
+            attrTypes.map((type) => (
               <AttributeSection
                 key={type}
                 type={type}
@@ -84,9 +101,9 @@ export function DirectoryFilterModal() {
                 selected={selected[type] ?? []}
                 onChange={(vals) => setAttrValues(type, vals)}
               />
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
