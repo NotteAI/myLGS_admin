@@ -72,7 +72,7 @@ export function countActiveFilters(f: AppliedFilters): number {
   return attrCount + [f.search, f.minPrice, f.maxPrice, f.inStockOnly].filter(Boolean).length;
 }
 
-function AttributeSection({
+export function AttributeSection({
   type,
   values,
   selected,
