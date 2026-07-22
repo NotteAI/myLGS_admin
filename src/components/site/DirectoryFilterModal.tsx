@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,12 +22,32 @@ interface StoreAttributeRow {
 
 type GroupedOptions = Record<string, string[]>;
 
-export function DirectoryFilterModal() {
+export interface DirectoryFilters {
+  search: string;
+  /** attribute_type → selected values (empty array = "all") */
+  attributes: Record<string, string[]>;
+}
+
+interface Props {
+  onApply: (filters: DirectoryFilters) => void;
+  activeFilterCount: number;
+}
+
+export const EMPTY_DIRECTORY_FILTERS: DirectoryFilters = {
+  search: "",
+  attributes: {},
+};
+
+export function countActiveDirectoryFilters(f: DirectoryFilters): number {
+  const attrCount = Object.values(f.attributes).reduce((sum, vals) => sum + vals.length, 0);
+  return attrCount + (f.search ? 1 : 0);
+}
+
+export function DirectoryFilterModal({ onApply, activeFilterCount }: Props) {
   const [open, setOpen] = useState(false);
   const [grouped, setGrouped] = useState<GroupedOptions>({});
   const [loadingOptions, setLoadingOptions] = useState(false);
-  const [selected, setSelected] = useState<Record<string, string[]>>({});
-  const [search, setSearch] = useState("");
+  const [draft, setDraft] = useState<DirectoryFilters>(EMPTY_DIRECTORY_FILTERS);
 
   useEffect(() => {
     if (!open) return;
@@ -52,7 +73,18 @@ export function DirectoryFilterModal() {
   }, [open]);
 
   function setAttrValues(type: string, vals: string[]) {
-    setSelected((s) => ({ ...s, [type]: vals }));
+    setDraft((d) => ({ ...d, attributes: { ...d.attributes, [type]: vals } }));
+  }
+
+  function handleApply() {
+    onApply(draft);
+    setOpen(false);
+  }
+
+  function handleReset() {
+    setDraft(EMPTY_DIRECTORY_FILTERS);
+    onApply(EMPTY_DIRECTORY_FILTERS);
+    setOpen(false);
   }
 
   const attrTypes = Object.keys(grouped);
@@ -63,6 +95,11 @@ export function DirectoryFilterModal() {
         <button className="flex items-center gap-2 border border-ink px-4 h-9 text-xs font-mono font-bold uppercase tracking-widest hover:bg-ink hover:text-white transition-colors">
           <SlidersHorizontal className="size-3.5" />
           Filter Shops
+          {activeFilterCount > 0 && (
+            <span className="ml-1 flex size-4 items-center justify-center rounded-full bg-brand text-[10px] text-white font-bold">
+              {activeFilterCount}
+            </span>
+          )}
         </button>
       </DialogTrigger>
 
@@ -82,8 +119,8 @@ export function DirectoryFilterModal() {
               <Input
                 className="pl-9 focus-visible:ring-brand"
                 placeholder="Title, description…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={draft.search}
+                onChange={(e) => setDraft((d) => ({ ...d, search: e.target.value }))}
               />
             </div>
           </div>
@@ -98,12 +135,27 @@ export function DirectoryFilterModal() {
                 key={type}
                 type={type}
                 values={grouped[type]}
-                selected={selected[type] ?? []}
+                selected={draft.attributes[type] ?? []}
                 onChange={(vals) => setAttrValues(type, vals)}
               />
             ))
           )}
         </div>
+
+        <DialogFooter className="gap-2">
+          <button
+            onClick={handleReset}
+            className="h-12 border border-ink px-6 text-sm font-mono font-bold uppercase tracking-widest hover:bg-ink/5 transition-colors"
+          >
+            Reset
+          </button>
+          <button
+            onClick={handleApply}
+            className="h-12 bg-ink px-6 text-sm font-mono font-bold uppercase tracking-widest text-white hover:bg-brand transition-colors"
+          >
+            Apply Filters
+          </button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
