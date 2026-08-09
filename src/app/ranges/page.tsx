@@ -42,7 +42,7 @@ export default function RangesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ranges")
-        .select("id, name, city, state, logo_url, primary_color_hex")
+        .select("id, name, city, state, logo_url, primary_color_hex, url_extension")
         .order("name");
       if (error) throw error;
       return data as RangeSummary[];

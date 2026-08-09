@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export interface RangeSummary {
   id: number;
   name: string;
@@ -5,11 +7,15 @@ export interface RangeSummary {
   state: string | null;
   logo_url: string | null;
   primary_color_hex: string | null;
+  url_extension: string;
 }
 
 export function RangeCard({ range }: { range: RangeSummary }) {
   return (
-    <div className="bg-card border border-ink/10 p-5">
+    <Link
+      href={`/ranges/${range.url_extension}`}
+      className="block bg-card border border-ink/10 p-5 hover:border-brand transition-colors group"
+    >
       <div className="flex items-start gap-4">
         {range.logo_url ? (
           <div className="size-12 shrink-0 rounded overflow-hidden border border-ink/10">
@@ -29,7 +35,9 @@ export function RangeCard({ range }: { range: RangeSummary }) {
           </div>
         )}
         <div className="min-w-0">
-          <h3 className="font-bold text-lg leading-tight truncate">{range.name}</h3>
+          <h3 className="font-bold text-lg leading-tight group-hover:text-brand transition-colors truncate">
+            {range.name}
+          </h3>
           {(range.city || range.state) && (
             <p className="mt-1 font-mono text-xs text-ink/50 uppercase tracking-wider">
               {[range.city, range.state].filter(Boolean).join(", ")}
@@ -37,6 +45,6 @@ export function RangeCard({ range }: { range: RangeSummary }) {
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

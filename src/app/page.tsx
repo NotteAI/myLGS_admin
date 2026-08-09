@@ -75,6 +75,17 @@ export default function HomePage() {
     },
   });
 
+  // id → url_extension, needed to link range cards (get_ranges_filtered doesn't return it).
+  const rangeUrlsQuery = useQuery({
+    queryKey: ["ranges-url-map"],
+    enabled: activeTab === "ranges",
+    queryFn: async () => {
+      const { data, error } = await supabase.from("ranges").select("id, url_extension");
+      if (error) throw error;
+      return new Map((data as { id: number; url_extension: string }[]).map((r) => [r.id, r.url_extension]));
+    },
+  });
+
   return (
     <main>
       {/* Hero */}
@@ -209,7 +220,15 @@ export default function HomePage() {
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {(ranges.data ?? []).map((r) => (
-                <RangeCard key={r.id} range={{ ...r, logo_url: null, primary_color_hex: null }} />
+                <RangeCard
+                  key={r.id}
+                  range={{
+                    ...r,
+                    logo_url: null,
+                    primary_color_hex: null,
+                    url_extension: rangeUrlsQuery.data?.get(r.id) ?? "",
+                  }}
+                />
               ))}
             </div>
           </>
