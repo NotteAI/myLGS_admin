@@ -31,6 +31,10 @@ export interface DirectoryFilters {
 interface Props {
   onApply: (filters: DirectoryFilters) => void;
   activeFilterCount: number;
+  /** Table to pull attribute_type/attribute_value options from. */
+  attributesTable?: string;
+  /** Plural noun used in the trigger button and dialog title, e.g. "Shops" or "Ranges". */
+  entityLabel?: string;
 }
 
 export const EMPTY_DIRECTORY_FILTERS: DirectoryFilters = {
@@ -43,7 +47,12 @@ export function countActiveDirectoryFilters(f: DirectoryFilters): number {
   return attrCount + (f.search ? 1 : 0);
 }
 
-export function DirectoryFilterModal({ onApply, activeFilterCount }: Props) {
+export function DirectoryFilterModal({
+  onApply,
+  activeFilterCount,
+  attributesTable = "store_attributes",
+  entityLabel = "Shops",
+}: Props) {
   const [open, setOpen] = useState(false);
   const [grouped, setGrouped] = useState<GroupedOptions>({});
   const [loadingOptions, setLoadingOptions] = useState(false);
@@ -53,7 +62,7 @@ export function DirectoryFilterModal({ onApply, activeFilterCount }: Props) {
     if (!open) return;
     setLoadingOptions(true);
     supabase
-      .from("store_attributes")
+      .from(attributesTable)
       .select("attribute_type, attribute_value")
       .then(({ data, error }: { data: StoreAttributeRow[] | null; error: unknown }) => {
         if (error || !data) {
@@ -70,7 +79,7 @@ export function DirectoryFilterModal({ onApply, activeFilterCount }: Props) {
         setGrouped(g);
       })
       .finally(() => setLoadingOptions(false));
-  }, [open]);
+  }, [open, attributesTable]);
 
   function setAttrValues(type: string, vals: string[]) {
     setDraft((d) => ({ ...d, attributes: { ...d.attributes, [type]: vals } }));
@@ -94,7 +103,7 @@ export function DirectoryFilterModal({ onApply, activeFilterCount }: Props) {
       <DialogTrigger asChild>
         <button className="flex items-center gap-2 border border-ink px-4 h-9 text-xs font-mono font-bold uppercase tracking-widest hover:bg-ink hover:text-white transition-colors">
           <SlidersHorizontal className="size-3.5" />
-          Filter Shops
+          Filter {entityLabel}
           {activeFilterCount > 0 && (
             <span className="ml-1 flex size-4 items-center justify-center rounded-full bg-brand text-[10px] text-white font-bold">
               {activeFilterCount}
@@ -106,7 +115,7 @@ export function DirectoryFilterModal({ onApply, activeFilterCount }: Props) {
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-mono text-xl uppercase tracking-widest">
-            [ Filter Shops ]
+            [ Filter {entityLabel} ]
           </DialogTitle>
         </DialogHeader>
 
